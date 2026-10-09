@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Roboto:ExtraBold';
+  src: url('https://static.figma.com/font/Roboto_wdth_wght__3') format('woff2');
+  font-style: normal;
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: 'Proxima Nova:Bold';
+  src: url('/fonts/Proxima_Nova-Bold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Proxima Nova:Regular';
+  src: url('/fonts/Proxima_Nova-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Proxima Nova:Semibold';
+  src: url('/fonts/Proxima_Nova-Semibold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'SF Pro:Light';
+  src: url('https://static.figma.com/font/SF-Pro_1') format('woff2');
+  font-style: normal;
+  font-weight: 274;
+}
+
+@font-face {
+  font-family: 'SF Pro:Regular';
+  src: url('https://static.figma.com/font/SF-Pro_1') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* SF UI Display — not available for this Make file; falling back to system-ui */

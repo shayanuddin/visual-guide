@@ -1,0 +1,445 @@
+/* ── Guided Flow: themed tokens + glass classes ────────────────────────────
+   Every visual value of the overlay lives here, per theme. Components never
+   branch on theme; they use the classes and variables below.
+
+   Three families of glass:
+     surface  — controls: search field, dock, device bubbles, choice cards,
+                review tiles, picker tiles and panels, transcript bubble
+     item     — list items: search result pills
+     selected — the chosen item/surface
+   Each family sets --gf-fg / --gf-fg-muted for the text inside it. */
+
+.gf-root {
+  --gf-font: system-ui, -apple-system, sans-serif;
+  --gf-radius-card: 22px;
+  --gf-radius-pill: 9999px;
+
+  /* Status dots — the only colour allowed, and tiny */
+  --gf-status-positive: #4ade80;
+  --gf-status-warning: #fbbf24;
+
+  /* Recording waveform colours, left → right. Monochrome white; give each a
+     different colour for a spectrum sweep. */
+  --gf-wave-1: #fff;
+  --gf-wave-2: #fff;
+  --gf-wave-3: #fff;
+  --gf-wave-4: #fff;
+  --gf-wave-5: #fff;
+
+  --gf-fg: var(--gf-on-scrim-text);
+  --gf-fg-muted: var(--gf-on-scrim-muted);
+  font-family: var(--gf-font);
+  color: var(--gf-fg);
+}
+
+/* ── Dark ─────────────────────────────────────────────────────────────────
+   Lighter scrim and blur so the host reads through. */
+.gf-root[data-gf-theme="dark"] {
+  --gf-scrim: rgba(32, 32, 32, 0.56);
+  --gf-host-blur: 6px;
+  --gf-on-scrim-text: #fff;
+  --gf-on-scrim-muted: rgba(255, 255, 255, 0.85);
+
+  --gf-surface-bg: rgba(255, 255, 255, 0.14);
+  --gf-surface-border-width: 1px;
+  --gf-surface-border-color: rgba(255, 255, 255, 0.55);
+  --gf-surface-blur: 16px;
+  --gf-surface-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 0 12px rgba(255, 255, 255, 0.15);
+  --gf-surface-text: #fff;
+  --gf-surface-text-muted: rgba(255, 255, 255, 0.85);
+
+  --gf-search-bg: var(--gf-surface-bg);
+  --gf-search-border-width: 1px;
+  --gf-search-border-color: var(--gf-surface-border-color);
+  --gf-search-blur: var(--gf-surface-blur);
+
+  --gf-item-bg: var(--gf-surface-bg);
+  --gf-item-border-width: 1px;
+  --gf-item-border-color: var(--gf-surface-border-color);
+  --gf-item-blur: var(--gf-surface-blur);
+  --gf-item-shadow: var(--gf-surface-shadow);
+  --gf-item-text: #fff;
+  --gf-item-text-muted: rgba(255, 255, 255, 0.85);
+  --gf-item-avatar-bg: #fff;
+  --gf-item-avatar-text: #1a1a1a;
+
+  --gf-match-bg: #fff;
+  --gf-match-text: #1a1a1a;
+
+  --gf-selected-bg: #fff;
+  --gf-selected-border-color: rgba(255, 255, 255, 0.55);
+  --gf-selected-text: #1a1a1a;
+  --gf-selected-text-muted: rgba(26, 26, 26, 0.7);
+  --gf-selected-avatar-bg: rgba(0, 0, 0, 0.07);
+  --gf-selected-avatar-text: #1a1a1a;
+
+  --gf-proceed-bg: #fff;
+  --gf-proceed-bg-pressed: #e4e4e4;
+  --gf-proceed-icon: #434343;
+  --gf-proceed-border: rgba(255, 255, 255, 0.7);
+  --gf-proceed-border-width: 1.75px;
+  --gf-proceed-shadow: none;
+  --gf-ring-inner-bg: rgba(255, 255, 255, 0.2);
+  --gf-ring-inner-glow: 0 17px 71px rgba(255, 255, 255, 0.1);
+  --gf-ring-outer-bg: rgba(255, 255, 255, 0.1);
+  --gf-ring-outer-glow: 0 20px 83px rgba(255, 255, 255, 0.05);
+
+  --gf-radar-ring: rgba(255, 255, 255, 0.55);
+  --gf-status-neutral: rgba(255, 255, 255, 0.6);
+
+  --gf-picker-scrim: rgba(0, 0, 0, 0.3);
+  --gf-dim-paused: rgba(0, 0, 0, 0.18);
+  --gf-focus-ring: 0 0 0 3px rgba(255, 255, 255, 0.9);
+
+  /* Families all share the white glass in dark */
+  --gf-hover-veil: rgba(255, 255, 255, 0.1);
+  --gf-dock-bg: var(--gf-surface-bg);
+  --gf-dock-border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --gf-dock-shadow: var(--gf-surface-shadow);
+  --gf-search-shadow: var(--gf-surface-shadow);
+  --gf-bubble-bg: var(--gf-surface-bg);
+  --gf-bubble-border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --gf-bubble-shadow: var(--gf-surface-shadow);
+  --gf-bubble-text-muted: var(--gf-surface-text-muted);
+  --gf-choice-bg: var(--gf-surface-bg);
+  --gf-choice-border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --gf-choice-shadow: var(--gf-surface-shadow);
+  --gf-choice-text-muted: var(--gf-surface-text-muted);
+  --gf-choice-selected-bg: var(--gf-selected-bg);
+  --gf-choice-selected-scale: 1.04;
+  --gf-tile-bg: var(--gf-surface-bg);
+  --gf-tile-border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --gf-tile-shadow: var(--gf-surface-shadow);
+  --gf-tile-text-muted: var(--gf-surface-text-muted);
+  --gf-solid-selected-bg: var(--gf-selected-bg);
+  --gf-solid-selected-border: var(--gf-selected-border-color);
+  --gf-picker-blur: 0px;
+}
+
+/* ── Light (Figma "AI-assistant-canoncial-light", 11784:15563) ───────────
+   Values are taken node by node from the light frames. Each control type has
+   its own glass: dock 0.7 + 1px rim, search 0.65 + 3px rim, device bubbles and
+   review tiles near-solid 0.95, choice cards 0.8 + 3px rim, list items pale
+   grey with a 10px white rim. */
+.gf-root[data-gf-theme="light"] {
+  --gf-scrim: rgba(255, 255, 255, 0.22);
+  --gf-host-blur: 2px;
+  --gf-on-scrim-text: #434343;
+  --gf-on-scrim-muted: #58595c;
+  --gf-hover-veil: rgba(255, 255, 255, 0.08);
+
+  /* Base surface = dock buttons (reset / close / mic) */
+  --gf-surface-bg: rgba(67, 67, 67, 0.7);
+  --gf-surface-border-width: 1px;
+  --gf-surface-border-color: rgba(255, 255, 255, 0.6);
+  --gf-surface-blur: 20px;
+  --gf-surface-shadow: none;
+  --gf-surface-text: #fff;
+  --gf-surface-text-muted: rgba(255, 255, 255, 0.63); /* white-90 at 70% */
+
+  --gf-dock-bg: rgba(67, 67, 67, 0.7);
+  --gf-dock-border: 1px solid rgba(255, 255, 255, 0.6);
+  --gf-dock-shadow: none;
+
+  --gf-search-bg: rgba(67, 67, 67, 0.65);
+  --gf-search-border-width: 3px;
+  --gf-search-border-color: rgba(255, 255, 255, 0.8);
+  --gf-search-blur: 20px;
+  --gf-search-shadow: 0 10px 60px rgba(255, 255, 255, 0.2);
+
+  --gf-bubble-bg: rgba(67, 67, 67, 0.95);
+  --gf-bubble-border: 3px solid rgba(255, 255, 255, 0.4);
+  --gf-bubble-shadow: 0 10px 60px rgba(67, 67, 67, 0.5);
+  --gf-bubble-text-muted: rgba(255, 255, 255, 0.63);
+
+  --gf-choice-bg: rgba(67, 67, 67, 0.8);
+  --gf-choice-border: 3px solid rgba(255, 255, 255, 0.4);
+  --gf-choice-shadow: 0 10px 60px rgba(255, 255, 255, 0.2);
+  --gf-choice-text-muted: rgba(255, 255, 255, 0.9);
+  --gf-choice-selected-bg: rgba(67, 67, 67, 0.95);
+  --gf-choice-selected-scale: 1.135; /* 397×212 → 450×240 */
+
+  --gf-tile-bg: rgba(67, 67, 67, 0.95);
+  --gf-tile-border: 2px solid rgba(255, 255, 255, 0.24);
+  --gf-tile-shadow: 0 10px 60px rgba(255, 255, 255, 0.2);
+  --gf-tile-text-muted: rgba(255, 255, 255, 0.63);
+
+  /* Chosen bubble / tile (not drawn in Figma): deepen and brighten the rim */
+  --gf-solid-selected-bg: rgba(34, 34, 34, 0.95);
+  --gf-solid-selected-border: rgba(255, 255, 255, 0.8);
+
+  --gf-item-bg: rgba(204, 204, 204, 0.8);
+  --gf-item-border-width: 10px;
+  --gf-item-border-color: rgba(255, 255, 255, 0.6);
+  --gf-item-blur: 3px;
+  --gf-item-shadow: none;
+  --gf-item-text: #434343;
+  --gf-item-text-muted: #6e6f72;
+  --gf-item-avatar-bg: #6e6f72;
+  --gf-item-avatar-text: #fff;
+
+  --gf-match-bg: #ececec;
+  --gf-match-text: #434343;
+
+  --gf-selected-bg: rgba(58, 58, 58, 0.8);
+  --gf-selected-border-color: rgba(255, 255, 255, 0.6);
+  --gf-selected-text: #fff;
+  --gf-selected-text-muted: #fff;
+  --gf-selected-avatar-bg: #ececec;
+  --gf-selected-avatar-text: #434343;
+
+  --gf-proceed-bg: #434343;
+  --gf-proceed-bg-pressed: #2e2e2e;
+  --gf-proceed-icon: #fff;
+  --gf-proceed-border: rgba(255, 255, 255, 0.7);
+  --gf-proceed-border-width: 1.345px;
+  --gf-proceed-shadow: none;
+  /* Figma "glow" layers: #434343 discs at 20% / 10% with a soft white drop */
+  --gf-ring-inner-bg: rgba(67, 67, 67, 0.2);
+  --gf-ring-inner-glow: 0 9.4px 38.6px rgba(255, 255, 255, 0.1);
+  --gf-ring-outer-bg: rgba(67, 67, 67, 0.1);
+  --gf-ring-outer-glow: 0 9.4px 38.6px rgba(255, 255, 255, 0.05);
+
+  --gf-radar-ring: rgba(67, 67, 67, 0.35);
+  --gf-status-neutral: #8b8c8e;
+
+  --gf-picker-scrim: rgba(227, 227, 227, 0.6);
+  --gf-picker-blur: 5px;
+  --gf-dim-paused: rgba(0, 0, 0, 0.12);
+  --gf-focus-ring: 0 0 0 3px #434343;
+}
+
+/* Theme crossfade: briefly transition colour properties only (GSAP owns
+   opacity and transform). */
+.gf-root.gf-theme-switching,
+.gf-root.gf-theme-switching * {
+  transition-property: background-color, border-color, color, box-shadow !important;
+  transition-duration: 0.2s !important;
+  transition-timing-function: ease !important;
+}
+
+.gf-scrim {
+  background: var(--gf-scrim);
+}
+
+/* ── Glass families ─────────────────────────────────────────────────────── */
+.gf-surface,
+.gf-item {
+  /* No opacity transition here: GSAP owns opacity on glass elements. */
+  transition: background-color 0.28s ease, color 0.28s ease, border-color 0.28s ease;
+  isolation: isolate; /* lets the hover veil sit between the fill and the content */
+}
+
+.gf-surface {
+  --gf-fg: var(--gf-surface-text);
+  --gf-fg-muted: var(--gf-surface-text-muted);
+  --_bg: var(--gf-surface-bg);
+  --_border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --_shadow: var(--gf-surface-shadow);
+  --_blur: var(--gf-surface-blur);
+  --_sel-bg: var(--gf-selected-bg);
+  --_sel-border: var(--gf-selected-border-color);
+  --_sel-scale: 1.04;
+  background-color: var(--_bg);
+  border: var(--_border);
+  box-shadow: var(--_shadow);
+  -webkit-backdrop-filter: blur(var(--_blur));
+  backdrop-filter: blur(var(--_blur));
+  color: var(--gf-fg);
+}
+/* Families: which glass each control type uses */
+.gf-surface.gf-dock {
+  --_bg: var(--gf-dock-bg);
+  --_border: var(--gf-dock-border);
+  --_shadow: var(--gf-dock-shadow);
+}
+.gf-surface.gf-search {
+  --_bg: var(--gf-search-bg);
+  --_border: var(--gf-search-border-width) solid var(--gf-search-border-color);
+  --_shadow: var(--gf-search-shadow);
+  --_blur: var(--gf-search-blur);
+}
+.gf-surface.gf-bubble {
+  --gf-fg-muted: var(--gf-bubble-text-muted);
+  --_bg: var(--gf-bubble-bg);
+  --_border: var(--gf-bubble-border);
+  --_shadow: var(--gf-bubble-shadow);
+  --_sel-bg: var(--gf-solid-selected-bg);
+  --_sel-border: var(--gf-solid-selected-border);
+}
+.gf-surface.gf-choice {
+  --gf-fg-muted: var(--gf-choice-text-muted);
+  --_bg: var(--gf-choice-bg);
+  --_border: var(--gf-choice-border);
+  --_shadow: var(--gf-choice-shadow);
+  --_sel-bg: var(--gf-choice-selected-bg);
+  --_sel-scale: var(--gf-choice-selected-scale);
+}
+.gf-surface.gf-tile {
+  --gf-fg-muted: var(--gf-tile-text-muted);
+  --_bg: var(--gf-tile-bg);
+  --_border: var(--gf-tile-border);
+  --_shadow: var(--gf-tile-shadow);
+  --_sel-bg: var(--gf-solid-selected-bg);
+  --_sel-border: var(--gf-solid-selected-border);
+}
+
+.gf-item {
+  --gf-fg: var(--gf-item-text);
+  --gf-fg-muted: var(--gf-item-text-muted);
+  --gf-avatar-bg: var(--gf-item-avatar-bg);
+  --gf-avatar-text: var(--gf-item-avatar-text);
+  --_sel-bg: var(--gf-selected-bg);
+  --_sel-border: var(--gf-selected-border-color);
+  --_sel-scale: 1.04;
+  background-color: var(--gf-item-bg);
+  border: var(--gf-item-border-width) solid var(--gf-item-border-color);
+  box-shadow: var(--gf-item-shadow);
+  -webkit-backdrop-filter: blur(var(--gf-item-blur));
+  backdrop-filter: blur(var(--gf-item-blur));
+  color: var(--gf-fg);
+}
+
+/* Hover: a veil over whatever fill the family uses. It lives on a pseudo
+   layer so it can fade (backgrounds can't transition). */
+.gf-surface:not(.absolute):not(.fixed),
+.gf-item:not(.absolute):not(.fixed) {
+  position: relative;
+}
+button.gf-surface::before,
+button.gf-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--gf-hover-veil);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+button.gf-surface:not(:disabled):hover::before,
+button.gf-item:not(:disabled):hover::before {
+  opacity: 1;
+}
+.gf-selected::before {
+  display: none;
+}
+
+.gf-selected {
+  --gf-fg: var(--gf-selected-text);
+  --gf-fg-muted: var(--gf-selected-text-muted);
+  --gf-avatar-bg: var(--gf-selected-avatar-bg);
+  --gf-avatar-text: var(--gf-selected-avatar-text);
+  background-color: var(--_sel-bg);
+  border-color: var(--_sel-border);
+  color: var(--gf-fg);
+  transform: scale(var(--_sel-scale, 1.04));
+}
+.gf-muted {
+  color: var(--gf-fg-muted);
+}
+
+.gf-avatar {
+  background: var(--gf-avatar-bg);
+  color: var(--gf-avatar-text);
+}
+
+.gf-card {
+  border-radius: var(--gf-radius-card);
+}
+.gf-pill {
+  border-radius: var(--gf-radius-pill);
+}
+
+/* Matched characters in search results */
+.gf-match {
+  background: var(--gf-match-bg);
+  color: var(--gf-match-text);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.gf-selected .gf-match {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.gf-root input::placeholder {
+  color: var(--gf-fg-muted);
+}
+
+.gf-root :focus-visible {
+  outline: none;
+  box-shadow: var(--gf-focus-ring);
+}
+.gf-root .gf-surface:focus-visible {
+  box-shadow: var(--_shadow), var(--gf-focus-ring);
+}
+
+/* ── Proceed ────────────────────────────────────────────────────────────── */
+.gf-proceed {
+  background: var(--gf-proceed-bg);
+  color: var(--gf-proceed-icon);
+  border: var(--gf-proceed-border-width) solid var(--gf-proceed-border);
+  box-shadow: var(--gf-proceed-shadow);
+  -webkit-backdrop-filter: blur(18.8px);
+  backdrop-filter: blur(18.8px);
+  transition: transform 0.12s ease, background-color 0.12s ease, opacity 0.15s ease;
+}
+.gf-proceed:active:not(:disabled) {
+  transform: scale(0.92);
+  background: var(--gf-proceed-bg-pressed);
+}
+.gf-proceed-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.gf-proceed-ring-inner {
+  background: var(--gf-ring-inner-bg);
+  box-shadow: var(--gf-ring-inner-glow);
+}
+.gf-proceed-ring-outer {
+  background: var(--gf-ring-outer-bg);
+  box-shadow: var(--gf-ring-outer-glow);
+}
+
+/* ── A/B theme switcher — a test control, deliberately not themed ─────── */
+.gf-ab {
+  font: 600 12px/1 var(--gf-font);
+  color: #333;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px dashed #8b8c8e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.gf-ab [role="radio"] {
+  color: #333;
+}
+.gf-ab [role="radio"][aria-checked="true"] {
+  background: #333;
+  color: #fff;
+}
+.gf-ab :focus-visible {
+  box-shadow: 0 0 0 2px #333;
+}
+
+.gf-no-scroll {
+  scrollbar-width: none;
+}
+.gf-no-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.gf-root input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.gf-root input[type="number"]::-webkit-inner-spin-button,
+.gf-root input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
