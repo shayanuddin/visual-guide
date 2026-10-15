@@ -57,7 +57,7 @@ export default function ChoiceStep<C extends object>(p: ChoiceStepProps<C>) {
   }, [setCommandHandler, options]);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 120, paddingBottom: 120 }}>
+    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 200, paddingBottom: 120 }}>
       <div ref={rowRef} role="radiogroup" className="flex flex-wrap justify-center"
         style={{ gap: CARD_GAP, maxWidth: p.columns ? p.columns * CARD_W + (p.columns - 1) * CARD_GAP : undefined }}>
         {options.map(o => {
