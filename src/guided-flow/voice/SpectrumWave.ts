@@ -12,11 +12,14 @@ export interface SpectrumWaveOptions {
   colors: string[];
 }
 
+// Tuned for a small pill: few, well-spaced bars and a couple of faint strands
+// read cleanly; dense bars and many strands turn into a smudge.
 const BAR_W = 2;
-const BAR_GAP = 2;
-const BAR_MIN = 2;
-const STRANDS = 7;
-const BURSTS = 4;
+const BAR_GAP = 4;
+const BAR_MIN = 3;
+const BAR_MAX = 0.8; // of the canvas height
+const STRANDS = 2;
+const BURSTS = 3;
 
 export class SpectrumWave {
   private ctx: CanvasRenderingContext2D;
@@ -27,6 +30,8 @@ export class SpectrumWave {
   private target = 0;
   private t = 0;
   private noise: number[];
+  private noiseTarget: number[];
+  private noiseClock = 0;
   private running = false;
 
   constructor(private canvas: HTMLCanvasElement, private opt: SpectrumWaveOptions) {
@@ -40,7 +45,9 @@ export class SpectrumWave {
     this.mask.width = canvas.width;
     this.mask.height = canvas.height;
     this.mctx = this.mask.getContext("2d")!;
-    this.noise = Array.from({ length: Math.ceil(width / (BAR_W + BAR_GAP)) }, () => 1);
+    const bars = Math.floor((width - BAR_W) / (BAR_W + BAR_GAP)) + 1;
+    this.noise = Array.from({ length: bars }, () => 1);
+    this.noiseTarget = this.noise.slice();
   }
 
   /** Input level 0…1 (smoothed internally). */
@@ -65,9 +72,13 @@ export class SpectrumWave {
     // Rise fast, fall slower — reads as speech rather than flicker
     const k = this.target > this.level ? 0.35 : 0.12;
     this.level += (this.target - this.level) * k;
-    if (Math.random() < 0.25) {
-      for (let i = 0; i < this.noise.length; i++) this.noise[i] = 0.7 + Math.random() * 0.3;
+    // Per-bar variation drifts smoothly instead of flickering every frame
+    this.noiseClock += dt;
+    if (this.noiseClock > 0.16) {
+      this.noiseClock = 0;
+      for (let i = 0; i < this.noiseTarget.length; i++) this.noiseTarget[i] = 0.75 + Math.random() * 0.25;
     }
+    for (let i = 0; i < this.noise.length; i++) this.noise[i] += (this.noiseTarget[i] - this.noise[i]) * 0.18;
     this.draw();
   };
 
@@ -76,8 +87,8 @@ export class SpectrumWave {
     let e = 0;
     for (let b = 0; b < BURSTS; b++) {
       const c = (b + 0.5) / BURSTS + 0.06 * Math.sin(this.t * 0.9 + b * 2.1);
-      const a = 0.7 + 0.3 * Math.sin(this.t * 2.4 + b * 1.7);
-      const d = (x - c) / 0.062; // narrow lumps leave quiet gaps between bursts
+      const a = 0.75 + 0.25 * Math.sin(this.t * 2.4 + b * 1.7);
+      const d = (x - c) / 0.1;
       e = Math.max(e, a * Math.exp(-0.5 * d * d));
     }
     return e;
@@ -93,28 +104,34 @@ export class SpectrumWave {
     m.globalCompositeOperation = "source-over";
     m.clearRect(0, 0, W, H);
 
-    // Bars: brightest at the centre line, fading towards the tips
+    // Bars: rounded, centred on the line, gently fading towards the tips
     const fade = m.createLinearGradient(0, 0, 0, H);
-    fade.addColorStop(0, "rgba(255,255,255,0.15)");
+    fade.addColorStop(0, "rgba(255,255,255,0.5)");
     fade.addColorStop(0.5, "rgba(255,255,255,1)");
-    fade.addColorStop(1, "rgba(255,255,255,0.15)");
+    fade.addColorStop(1, "rgba(255,255,255,0.5)");
     m.fillStyle = fade;
     const step = BAR_W + BAR_GAP;
-    for (let i = 0, x = 1; x < W; i++, x += step) {
-      const env = this.envelope(x / W);
-      const h = BAR_MIN + (H - BAR_MIN) * Math.min(1, this.level * 1.15) * Math.pow(env, 0.85) * this.noise[i];
-      m.fillRect(x, mid - h / 2, BAR_W, h);
+    const span = (this.noise.length - 1) * step + BAR_W;
+    const x0 = (W - span) / 2;
+    const lvl = Math.min(1, this.level * 1.15);
+    m.beginPath();
+    for (let i = 0; i < this.noise.length; i++) {
+      const x = x0 + i * step;
+      const env = this.envelope((x + BAR_W / 2) / W);
+      const h = BAR_MIN + (H * BAR_MAX - BAR_MIN) * lvl * env * this.noise[i];
+      m.roundRect(x, mid - h / 2, BAR_W, h, BAR_W / 2);
     }
+    m.fill();
 
-    // Strands: fine sine lines that bulge where the bars are tall
-    m.lineWidth = 0.7;
-    m.strokeStyle = "rgba(255,255,255,0.55)";
+    // Strands: a few faint sine lines that bulge where the bars are tall
+    m.lineWidth = 0.9;
+    m.strokeStyle = "rgba(255,255,255,0.26)";
     for (let j = 0; j < STRANDS; j++) {
       m.beginPath();
       for (let x = 0; x <= W; x += 1.5) {
         const u = x / W;
-        const amp = H * 0.34 * Math.min(1, this.level * 1.15) * (0.35 + this.envelope(u));
-        const y = mid + amp * Math.sin(u * Math.PI * 4.2 + this.t * 3.1 + j * 0.38);
+        const amp = H * 0.28 * lvl * (0.3 + this.envelope(u));
+        const y = mid + amp * Math.sin(u * Math.PI * 3.2 + this.t * 2.6 + j * 1.1);
         if (x === 0) m.moveTo(x, y); else m.lineTo(x, y);
       }
       m.stroke();
@@ -131,9 +148,9 @@ export class SpectrumWave {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.globalCompositeOperation = "lighter";
-    ctx.filter = `blur(${4 * s}px)`;
-    ctx.globalAlpha = 1;
-    ctx.drawImage(this.mask, 0, 0);
+    // One soft glow pass — enough to feel lit without blooming into a blur
+    ctx.filter = `blur(${2 * s}px)`;
+    ctx.globalAlpha = 0.45;
     ctx.drawImage(this.mask, 0, 0);
     ctx.filter = "none";
     ctx.globalAlpha = 1;

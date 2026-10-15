@@ -13,7 +13,14 @@ export interface ChoiceOption {
 export interface ChoiceStepProps<C extends object> extends StepApi<C> {
   options: ChoiceOption[];
   toContext: (option: ChoiceOption) => Partial<C>;
+  /** Cards per row; by default they wrap to the screen. */
+  columns?: number;
+  /** The option chosen before (after going back); outlined until another is picked. */
+  current?: string;
 }
+
+const CARD_W = 397;
+const CARD_GAP = 36;
 
 export default function ChoiceStep<C extends object>(p: ChoiceStepProps<C>) {
   const { options, reducedMotion: rm, setCommandHandler } = p;
@@ -51,18 +58,20 @@ export default function ChoiceStep<C extends object>(p: ChoiceStepProps<C>) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: 120, paddingBottom: 120 }}>
-      <div ref={rowRef} role="radiogroup" className="flex flex-wrap justify-center" style={{ gap: 36 }}>
+      <div ref={rowRef} role="radiogroup" className="flex flex-wrap justify-center"
+        style={{ gap: CARD_GAP, maxWidth: p.columns ? p.columns * CARD_W + (p.columns - 1) * CARD_GAP : undefined }}>
         {options.map(o => {
           const isSel = selected === o.id;
+          const isCurrent = !selected && p.current === o.id;
           return (
             <button
               key={o.id}
               role="radio"
-              aria-checked={isSel}
+              aria-checked={selected ? isSel : isCurrent}
               onClick={() => pick(o)}
-              className={`gf-surface gf-choice gf-card relative flex flex-col items-start text-left ${isSel ? "gf-selected" : "hover:scale-105 active:scale-105"}`}
+              className={`gf-surface gf-choice gf-card relative flex flex-col items-start text-left ${isSel || isCurrent ? "gf-selected" : "hover:scale-105 active:scale-105"}`}
               style={{
-                width: 397, minHeight: 212, padding: "26px 35px", gap: 12,
+                width: CARD_W, minHeight: 212, padding: "26px 35px", gap: 12,
                 opacity: selected && !isSel ? M.dimOpacity : 1,
                 // Hover grow uses the CSS `scale` property, so it needs its own transition.
                 transition: [

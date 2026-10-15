@@ -114,6 +114,12 @@
   --gf-solid-selected-bg: var(--gf-selected-bg);
   --gf-solid-selected-border: var(--gf-selected-border-color);
   --gf-picker-blur: 0px;
+
+  /* Secondary action (beside a selected primary): the regular glass */
+  --gf-secondary-bg: var(--gf-surface-bg);
+  --gf-secondary-border: var(--gf-surface-border-width) solid var(--gf-surface-border-color);
+  --gf-secondary-text: #fff;
+  --gf-secondary-veil: var(--gf-hover-veil);
 }
 
 /* ── Light (Figma "AI-assistant-canoncial-light", 11784:15563) ───────────
@@ -169,7 +175,8 @@
   --gf-solid-selected-border: rgba(255, 255, 255, 0.8);
 
   --gf-item-bg: rgba(204, 204, 204, 0.8);
-  --gf-item-border-width: 10px;
+  /* Figma draws a 10px white rim; reduced to a hairline so rows read lighter */
+  --gf-item-border-width: 1px;
   --gf-item-border-color: rgba(255, 255, 255, 0.6);
   --gf-item-blur: 3px;
   --gf-item-shadow: none;
@@ -207,6 +214,13 @@
   --gf-picker-blur: 5px;
   --gf-dim-paused: rgba(0, 0, 0, 0.12);
   --gf-focus-ring: 0 0 0 3px #434343;
+
+  /* Secondary action: pale glass with dark text, so it steps back from the
+     dark primary instead of looking like a faded copy of it */
+  --gf-secondary-bg: rgba(255, 255, 255, 0.72);
+  --gf-secondary-border: 1px solid rgba(67, 67, 67, 0.22);
+  --gf-secondary-text: #434343;
+  --gf-secondary-veil: rgba(67, 67, 67, 0.06);
 }
 
 /* Theme crossfade: briefly transition colour properties only (GSAP owns
@@ -252,6 +266,20 @@
   --_bg: var(--gf-dock-bg);
   --_border: var(--gf-dock-border);
   --_shadow: var(--gf-dock-shadow);
+}
+/* Speak in the dock: the host's Ask! gradient, the same in every theme */
+.gf-surface.gf-dock.gf-mic-brand {
+  --gf-fg: #fff;
+  --_border: none;
+  --_shadow: 0 6px 18px rgba(0, 122, 139, 0.32);
+  background-image: linear-gradient(156.3deg, #007A8B 0%, #3AAF4D 37%, #A8CB38 85.6%);
+}
+.gf-surface.gf-secondary {
+  --gf-fg: var(--gf-secondary-text);
+  --gf-hover-veil: var(--gf-secondary-veil);
+  --_bg: var(--gf-secondary-bg);
+  --_border: var(--gf-secondary-border);
+  --_shadow: none;
 }
 .gf-surface.gf-search {
   --_bg: var(--gf-search-bg);
@@ -336,6 +364,13 @@ button.gf-item:not(:disabled):hover::before {
   color: var(--gf-fg);
   transform: scale(var(--_sel-scale, 1.04));
 }
+/* Each family sets its own muted text (two classes), which would otherwise
+   outrank .gf-selected and leave descriptions white on a white card. */
+.gf-surface.gf-selected,
+.gf-item.gf-selected {
+  --gf-fg-muted: var(--gf-selected-text-muted);
+}
+
 .gf-muted {
   color: var(--gf-fg-muted);
 }
@@ -427,6 +462,29 @@ button.gf-item:not(:disabled):hover::before {
   box-shadow: 0 0 0 2px #333;
 }
 
+/* Minimal scrollbar: a thin rounded thumb in the text colour, no track or
+   arrows. */
+.gf-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--gf-fg) 35%, transparent) transparent;
+}
+.gf-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.gf-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.gf-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--gf-fg) 35%, transparent);
+  border-radius: 9999px;
+}
+.gf-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--gf-fg) 55%, transparent);
+}
+.gf-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+
 .gf-no-scroll {
   scrollbar-width: none;
 }
@@ -442,4 +500,323 @@ button.gf-item:not(:disabled):hover::before {
 .gf-root input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+/* ── Brand (Figma "AI agent demo", row y 24804) ───────────────────────────
+   A dark globe backdrop washed in the brand gradient, white content cards and
+   gradient actions. Same components as Dark/Light: everything below is tokens,
+   plus a few Brand-only rules where a token can't express the Figma value. */
+.gf-root[data-gf-theme="brand"] {
+  --gf-b-grad: linear-gradient(133.409deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
+  --gf-b-ink: #434343;
+  --gf-b-ink-2: #6e6f72;
+
+  /* "vid bg" — the scrim itself */
+  --gf-scrim: linear-gradient(181.104deg, rgba(1, 14, 17, 0.94) 19.611%, rgba(0, 1, 3, 0.94) 98.745%);
+  --gf-host-blur: 3px;
+  --gf-on-scrim-text: #fcfcfc;
+  --gf-on-scrim-muted: rgba(252, 252, 252, 0.6);
+  --gf-hover-veil: rgba(255, 255, 255, 0.08);
+
+  /* Close / reset / mic: Figma's close button */
+  --gf-surface-bg: rgba(255, 255, 255, 0.1);
+  --gf-surface-border-width: 0px;
+  --gf-surface-border-color: rgba(255, 255, 255, 0.3);
+  --gf-surface-blur: 6px;
+  --gf-surface-shadow: none;
+  --gf-surface-text: #fff;
+  --gf-surface-text-muted: rgba(255, 255, 255, 0.85);
+  --gf-dock-bg: rgba(255, 255, 255, 0.1);
+  --gf-dock-border: 0 solid transparent;
+  --gf-dock-shadow: none;
+
+  /* Search: white field with a deep green drop */
+  --gf-search-bg: #fff;
+  --gf-search-border-width: 0px;
+  --gf-search-border-color: transparent;
+  --gf-search-blur: 0px;
+  --gf-search-shadow: 0 20.862px 43.463px rgba(2, 25, 11, 0.8);
+
+  /* Result pills: 10% brand gradient (painted by the rule below) */
+  --gf-item-bg: transparent;
+  --gf-item-border-width: 0px;
+  --gf-item-border-color: transparent;
+  --gf-item-blur: 0px;
+  --gf-item-shadow: none;
+  --gf-item-text: rgba(255, 255, 255, 0.9);
+  --gf-item-text-muted: #c5c5c7;
+  --gf-item-avatar-bg: linear-gradient(132.076deg, #007a8b 18.258%, #207d2f 85.301%, #a8cb38 173.28%);
+  --gf-item-avatar-text: rgba(255, 255, 255, 0.9);
+  --gf-match-bg: #ececec;
+  --gf-match-text: #8b8c8e;
+
+  /* Selected anything: white card, dark text */
+  --gf-selected-bg: #fff;
+  --gf-selected-border-color: #007a8b;
+  --gf-selected-text: #434343;
+  --gf-selected-text-muted: #6e6f72;
+  --gf-selected-avatar-bg: var(--gf-item-avatar-bg);
+  --gf-selected-avatar-text: rgba(255, 255, 255, 0.9);
+
+  /* Device bubbles: Figma's white device card */
+  --gf-bubble-bg: #fcfcfc;
+  --gf-bubble-border: 2px solid #007a8b;
+  --gf-bubble-shadow: 0 20.862px 86.925px rgba(2, 25, 11, 0.8);
+  --gf-bubble-text-muted: #434343;
+  --gf-solid-selected-bg: #fff;
+  --gf-solid-selected-border: #3aaf4d;
+  --gf-radar-ring: rgba(209, 236, 160, 0.6);
+  --gf-status-neutral: #c5c5c7;
+
+  /* Choice cards: frosted, white when chosen */
+  --gf-choice-bg: rgba(255, 255, 255, 0.25);
+  --gf-choice-border: 3px solid rgba(255, 255, 255, 0.4);
+  --gf-choice-shadow: 0 10px 60px rgba(255, 255, 255, 0.2);
+  --gf-choice-text-muted: rgba(255, 255, 255, 0.9);
+  --gf-choice-selected-bg: #fff;
+  --gf-choice-selected-scale: 1.06;
+
+  /* Review tiles and picker panels */
+  --gf-tile-bg: rgba(255, 255, 255, 0.25);
+  --gf-tile-border: 2px solid rgba(255, 255, 255, 0.24);
+  --gf-tile-shadow: 0 10px 60px rgba(255, 255, 255, 0.2);
+  --gf-tile-text-muted: #fff;
+
+  /* Proceed: the gradient Next button */
+  --gf-proceed-bg: var(--gf-b-grad);
+  --gf-proceed-bg-pressed: var(--gf-b-grad);
+  --gf-proceed-icon: #fff;
+  --gf-proceed-border: transparent;
+  --gf-proceed-border-width: 0px;
+  --gf-proceed-shadow: 0 20px 60px rgba(2, 25, 11, 0.5);
+  --gf-ring-inner-bg: rgba(58, 175, 77, 0.22);
+  --gf-ring-inner-glow: 0 17px 71px rgba(168, 203, 56, 0.15);
+  --gf-ring-outer-bg: rgba(58, 175, 77, 0.1);
+  --gf-ring-outer-glow: 0 20px 83px rgba(168, 203, 56, 0.08);
+
+  --gf-secondary-bg: rgba(255, 255, 255, 0.1);
+  --gf-secondary-border: 1px solid rgba(255, 255, 255, 0.3);
+  --gf-secondary-text: #fff;
+  --gf-secondary-veil: rgba(255, 255, 255, 0.08);
+
+  --gf-picker-scrim: rgba(0, 0, 0, 0.35);
+  --gf-picker-blur: 0px;
+  --gf-dim-paused: rgba(0, 0, 0, 0.2);
+  --gf-focus-ring: 0 0 0 3px rgba(255, 255, 255, 0.9);
+
+  /* Scene layout: where the heading sits, and how far content drops below it */
+  --gf-heading-top: 200px;
+  --gf-content-shift: 170px;
+  --gf-search-top: 201.82px; /* 371.82 on screen, under the shift */
+  --gf-search-max-results: 3;
+  isolation: isolate;
+}
+.gf-root[data-gf-theme="brand"][data-gf-scene="intro"] {
+  --gf-heading-top: 387px;
+  --gf-content-shift: 0px;
+  --gf-search-top: 558.82px;
+}
+.gf-root[data-gf-theme="brand"][data-gf-scene="scan"] {
+  --gf-content-shift: 0px;
+}
+
+/* Backdrop layers above the scrim */
+.gf-brand-orb {
+  position: absolute;
+  left: 50%;
+  top: 52px;
+  width: 602.364px;
+  height: 338.83px;
+  translate: calc(-50% + 0.5px) 0;
+  mix-blend-mode: lighten;
+  /* The render's background isn't pure black: feather the frame away */
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+  transition: filter 0.2s ease-out, opacity 0.2s ease-out;
+}
+.gf-brand-orb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gf-root[data-gf-scene="focus"] .gf-brand-orb {
+  filter: blur(17px);
+}
+.gf-root[data-gf-scene="scan"] .gf-brand-orb {
+  opacity: 0;
+}
+.gf-brand-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(67, 67, 67, 0.4);
+}
+.gf-brand-color {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(67, 67, 67, 0.5), rgba(67, 67, 67, 0.5)),
+    linear-gradient(143.164deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
+  /* Figma also blurs here, but in the browser that softens the globe; the
+     scrim's own blur already covers the host. */
+  mix-blend-mode: color;
+}
+
+/* Heading block */
+.gf-brand-heading {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--gf-heading-top);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 32px;
+  color: #fcfcfc;
+  transition: top 0.2s ease-out, opacity 0.2s ease-out;
+  pointer-events: none;
+}
+.gf-root[data-gf-scene="scan"] .gf-brand-heading {
+  opacity: 0;
+}
+.gf-brand-title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: normal;
+}
+.gf-brand-subtitle {
+  margin-top: 18px;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 26px;
+}
+.gf-brand-separator {
+  margin-top: 32px;
+  width: 60px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #ececec;
+}
+
+/* Content drops below the heading; the search field places itself instead */
+.gf-step-wrap {
+  transition: top 0.2s ease-out;
+}
+.gf-root[data-gf-theme="brand"] .gf-step-wrap {
+  top: var(--gf-content-shift);
+}
+
+/* Only Brand shows the search hint */
+.gf-brand-only {
+  display: none;
+}
+.gf-root[data-gf-theme="brand"] .gf-brand-only {
+  display: block;
+}
+
+/* Brand-only details tokens can't carry */
+.gf-root[data-gf-theme="brand"] .gf-surface.gf-search {
+  --gf-fg: #434343;
+  --gf-fg-muted: #c5c5c7;
+}
+.gf-root[data-gf-theme="brand"] .gf-search > span:first-child {
+  color: #599400;
+}
+.gf-root[data-gf-theme="brand"] .gf-item:not(.gf-selected) {
+  background-image: linear-gradient(173.558deg, rgba(0, 122, 139, 0.1) 0%, rgba(58, 175, 77, 0.1) 37.007%, rgba(168, 203, 56, 0.1) 85.572%);
+}
+.gf-root[data-gf-theme="brand"] .gf-item.gf-selected {
+  border: 2.222px solid #007a8b;
+}
+.gf-root[data-gf-theme="brand"] .gf-bubble {
+  --gf-fg: #434343;
+}
+.gf-root[data-gf-theme="brand"] .gf-bubble svg {
+  color: #007a8b;
+}
+.gf-root[data-gf-theme="brand"] .gf-tile,
+.gf-root[data-gf-theme="brand"] .gf-choice {
+  --_blur: 20px;
+}
+
+/* "All set" (Figma 11635:14781), now in every theme */
+.gf-brand-finale {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 1000.641px;
+  max-width: calc(var(--stage-vw, 1vw) * 100 - 64px);
+  font-size: 60px;
+  font-weight: 500;
+  line-height: 78px;
+  text-align: center;
+  text-wrap: balance;
+  background-image: linear-gradient(171.139deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Get Started: a centred gradient pill under the message, styled per theme */
+.gf-root[data-gf-theme="brand"] {
+  --gf-cta-bg: linear-gradient(133.409deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
+  --gf-cta-ring: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+  --gf-cta-shadow: 0 20px 60px rgba(2, 25, 11, 0.5);
+}
+.gf-root[data-gf-theme="dark"] {
+  --gf-cta-bg: linear-gradient(133.409deg, #0b8fa1 0%, #3aaf4d 45%, #b4d63f 100%);
+  --gf-cta-ring: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+  --gf-cta-shadow: 0 14px 48px rgba(58, 175, 77, 0.38);
+}
+.gf-root[data-gf-theme="light"] {
+  --gf-cta-bg: linear-gradient(133.409deg, #007a8b 0%, #3aaf4d 45%, #8fbf2c 100%);
+  --gf-cta-ring: inset 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+  --gf-cta-shadow: 0 14px 36px rgba(0, 122, 139, 0.28);
+}
+.gf-brand-cta {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 140px);
+  translate: -50% 0;
+  height: 84px;
+  padding: 0 52px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 32px;
+  font-weight: 400;
+  color: #fff;
+  background: var(--gf-cta-bg);
+  box-shadow: var(--gf-cta-ring), var(--gf-cta-shadow);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, filter 0.2s ease;
+}
+.gf-brand-cta:hover { filter: brightness(1.06); transform: scale(1.03); }
+.gf-brand-cta:active { transform: scale(0.98); }
+.gf-brand-cta:focus-visible { outline: none; box-shadow: var(--gf-cta-ring), var(--gf-cta-shadow), var(--gf-focus-ring); }
+
+/* The globe on Dark and Light's "All set" screen (Brand has its own backdrop) */
+.gf-orb-solo {
+  animation: gf-orb-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gf-root[data-gf-theme="light"] .gf-orb-solo {
+  /* The render is light on black: flip it so it reads on a light screen, tinted brand green */
+  mix-blend-mode: multiply;
+  filter: invert(1) sepia(1) hue-rotate(75deg) saturate(2.4);
+}
+@keyframes gf-orb-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .gf-orb-solo { animation: none; } }
+
+/* Dock "Close": solid white circle with a #434343 X, in every theme. */
+.gf-root[data-gf-theme="dark"],
+.gf-root[data-gf-theme="light"],
+.gf-root[data-gf-theme="brand"] { --gf-close-bg: #fff; --gf-close-icon: #434343; }
+.gf-surface.gf-dock.gf-close {
+  --_bg: var(--gf-close-bg);
+  --gf-fg: var(--gf-close-icon);
+  --_border: 1px solid rgba(0, 0, 0, 0.06);
+  --_shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.14);
 }

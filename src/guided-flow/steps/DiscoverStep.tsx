@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { gsap } from "gsap";
 import { M, ms } from "../motion";
 import type { StepApi } from "../flows/types";
-import { SignalIcon } from "./icons";
+import { RefreshIcon } from "./icons";
 
 export interface DiscoverStepProps<T, C extends object> extends StepApi<C> {
   /** Starts a scan. Calls onFound per discovery and onDone when finished; returns a cancel function. */
@@ -21,7 +21,7 @@ const BUBBLE = 200;
 const slotX = (i: number, n: number) => (i - (n - 1) / 2) * (BUBBLE + M.bubbleGap);
 
 export default function DiscoverStep<T, C extends object>(p: DiscoverStepProps<T, C>) {
-  const { scan, getKey, announce, reducedMotion: rm, noun, setCommandHandler } = p;
+  const { scan, getKey, announce, reducedMotion: rm, noun, setCommandHandler, setScene } = p;
   const [phase, setPhase] = useState<Phase>("scanning");
   const [items, setItems] = useState<T[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -35,6 +35,10 @@ export default function DiscoverStep<T, C extends object>(p: DiscoverStepProps<T
   const emptyTimer = useRef<number>(undefined);
   const holdTimer = useRef<number>(undefined);
   const prevCount = useRef(0);
+
+  // Brand: the radar owns the screen while scanning; heading and globe return with results
+  const scanning0 = phase === "scanning" || phase === "merging";
+  useEffect(() => { setScene(scanning0 ? "scan" : "focus"); }, [scanning0, setScene]);
 
   // ── Scan lifecycle ──────────────────────────────────────────────────────────
   const startScan = useCallback(() => {
@@ -254,7 +258,7 @@ export default function DiscoverStep<T, C extends object>(p: DiscoverStepProps<T
         {(phase === "done" || phase === "empty" || (phase === "merging" && items.length > 0)) && selected === null && (
           <button ref={scanAgainRef} onClick={scanAgain} aria-label={`Refresh ${noun}s`}
             className="flex items-center gap-2 text-[18px] font-semibold px-4 rounded-full" style={{ minHeight: 44, opacity: 0 }}>
-            <SignalIcon size={20} />
+            <RefreshIcon size={20} />
             Refresh
           </button>
         )}

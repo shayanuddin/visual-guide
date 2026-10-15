@@ -1,11 +1,11 @@
 import { createElement as h } from "react";
 import type { FlowConfig } from "./types";
 import {
-  DEVICES, ETHNICITIES, PATIENTS, TEST_TYPES,
-  formatAdmission, heightToCm, splitHeight,
+  DEVICES, ETHNICITIES, TEST_TYPES,
+  heightToCm, splitHeight,
   type Answers, type Device, type Patient, type TestType,
 } from "../data";
-import SearchStep, { type StatusTone } from "../steps/SearchStep";
+import { patientStep } from "./shared";
 import DiscoverStep from "../steps/DiscoverStep";
 import ChoiceStep from "../steps/ChoiceStep";
 import ReviewStep, { type ReviewField } from "../steps/ReviewStep";
@@ -18,12 +18,6 @@ export interface SpirometryContext {
   test?: TestType;
   answers?: Answers;
 }
-
-const STATUS_TONE: Record<Patient["status"], StatusTone> = {
-  Active: "positive",
-  Pending: "warning",
-  Discharge: "neutral",
-};
 
 /** Mock Bluetooth scan. Add `?gfNoDevices` to the URL to see the empty state. */
 function mockScan(onFound: (d: Device) => void, onDone: () => void) {
@@ -67,6 +61,8 @@ const REVIEW_FIELDS: ReviewField[] = [
   },
 ];
 
+const firstName = (p?: Patient) => p?.name.split(" ")[0] ?? "Patient";
+
 function answersFrom(p?: Patient): Values {
   const { ft, inches } = splitHeight(p?.height);
   return {
@@ -82,31 +78,19 @@ function answersFrom(p?: Patient): Values {
 export const spirometryFlow: FlowConfig<SpirometryContext> = {
   id: "spirometry",
   label: "Spirometry assessment guide",
+  finale: {
+    message: ctx => `All set, have ${firstName(ctx.patient)} seated upright with the nose clip on.`,
+    action: "Get Started",
+  },
   steps: [
-    {
-      id: "patient",
-      label: "Find patient",
-      prompt: "search for a patient",
-      provides: ["patient"],
-      render: api => h(SearchStep<Patient, SpirometryContext>, {
-        ...api,
-        items: PATIENTS,
-        placeholder: "Search a patient to get started",
-        noun: "patients",
-        getKey: p => p.mrn,
-        getTitle: p => p.name,
-        getSubtitle: p => [p.gender ?? "—", `Admission Date: ${formatAdmission(p.admissionDate)}`],
-        getInitials: p => p.initials,
-        getStatus: p => ({ label: p.status, tone: STATUS_TONE[p.status] }),
-        matches: (p, q) => p.name.toLowerCase().includes(q.toLowerCase()) || p.mrn.toLowerCase().includes(q.toLowerCase()),
-        toContext: patient => ({ patient }),
-      }),
-    },
+    patientStep<SpirometryContext>({ heading: "Who are we assessing today?", subtitle: "Select a patient to assess" }),
     {
       id: "device",
       label: "Connect device",
       prompt: "select a device",
       provides: ["device"],
+      heading: "These nearby devices are found",
+      subtitle: "Select a device to connect",
       render: api => h(DiscoverStep<Device, SpirometryContext>, {
         ...api,
         scan: mockScan,
@@ -122,6 +106,8 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
       label: "Choose exercise",
       prompt: "choose an exercise",
       provides: ["test"],
+      heading: "Choose the test",
+      subtitle: "Select the protocol for this assessment",
       render: api => h(ChoiceStep<SpirometryContext>, {
         ...api,
         options: TEST_TYPES.map(t => ({ id: t.id, title: t.label, description: t.desc })),
@@ -133,10 +119,13 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
       label: "Review details",
       prompt: "review demographics",
       provides: ["answers"],
+      heading: ctx => `${firstName(ctx.patient)}’s demographics`,
+      subtitle: "Patient's demographics are pre-filled, review and edit if needed",
       render: api => h(ReviewStep<SpirometryContext>, {
         ...api,
         fields: REVIEW_FIELDS,
-        initialValues: ctx => answersFrom(ctx.patient),
+        // Back from "All set" keeps the clinician's edits
+        initialValues: ctx => (ctx.answers ? { ...ctx.answers } : answersFrom(ctx.patient)),
         toContext: v => ({
           answers: {
             gender: v.gender, dob: v.dob, weight: v.weight,

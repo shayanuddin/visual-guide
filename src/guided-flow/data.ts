@@ -409,3 +409,201 @@ export function heightToCm(ft: string, inches: string): number {
   const i = parseFloat(inches) || 0;
   return Math.round((f * 12 + i) * 2.54);
 }
+
+// ─── QR device sessions (Quick Connect → Scan QR) ────────────────────────────
+
+/** One value the device reports. `id` is the key in the review values. */
+export interface DeviceRecord {
+  id: string;
+  label: string;
+  value: string;
+  /** Explanation behind the record's "?" on the documentation screen. */
+  info?: string;
+}
+
+/** A field the device can't measure, so the clinician fills it in the record step. */
+export interface ClinicianRecord {
+  id: string;
+  label: string;
+  input: { kind: "text"; placeholder: string } | { kind: "options"; options: string[] };
+}
+
+export interface TherapySession {
+  device: string;
+  serial: string;
+  mode: string;
+  /** When the device session ended, e.g. "10:42 AM". */
+  endedAt: string;
+  /** Minutes the device actually ran; seeds Skilled Time. */
+  runMinutes: number;
+  records: DeviceRecord[];
+  clinician: ClinicianRecord[];
+  /** Body areas this device treats; the clinician picks the treatment location from these. */
+  treatmentLocations: string[];
+  /** Device-written interventions, appended to the generated note. */
+  narrative: string[];
+  /** CPT codes that fit this device's sessions, most likely first (the default). */
+  cptCodes: string[];
+}
+
+export const THERAPY_SETTINGS = [
+  { id: "individual", label: "Individual", desc: "One clinician with one patient for the whole session." },
+  { id: "concurrent", label: "Concurrent", desc: "One clinician with two patients doing different activities." },
+  { id: "group", label: "Group", desc: "One clinician with two to six patients on the same activity." },
+  { id: "co_treatment", label: "Co-treatment", desc: "Two disciplines treating the patient together." },
+] as const;
+
+export type TherapySetting = (typeof THERAPY_SETTINGS)[number];
+
+export const NOTE_TYPES = ["Daily Note", "Progress Note", "Treatment Note", "Re-evaluation"];
+
+export const QR_SESSIONS: Record<string, TherapySession> = {
+  // What an OmniVersa QR actually carries (PCC recording, Feb 2026): indication,
+  // protocol, channels with their intensity, run time. No treatment location.
+  omniversa: {
+    device: "OmniVersa",
+    serial: "OV-2231-06505",
+    mode: "Electrotherapy",
+    endedAt: "10:42 AM",
+    runMinutes: 3.5,
+    records: [
+      { id: "indication", label: "Indication", value: "Manual Mode" },
+      { id: "protocol", label: "Protocol", value: "MFAC" },
+      { id: "channels", label: "Used channels", value: "CH B" },
+      { id: "intensity", label: "Channel-B intensity", value: "28.4 mA", info: "Peak current reached during the session, titrated to patient tolerance." },
+      { id: "runTime", label: "Device run time", value: "3 min 17 sec" },
+    ],
+    clinician: [],
+    treatmentLocations: [
+      "Right Shoulder", "Left Shoulder", "Cervical Spine", "Lumbar Spine",
+      "Right Knee", "Left Knee", "Right Hip", "Left Hip",
+    ],
+    narrative: [],
+    cptCodes: ["97032", "G0283", "97035", "97024"],
+  },
+  omnicycle: {
+    device: "OmniCycle",
+    serial: "OC-1187-02293",
+    mode: "Neuro",
+    endedAt: "11:15 AM",
+    runMinutes: 10,
+    records: [
+      { id: "location", label: "Location", value: "Lower Extremity" },
+      { id: "activity", label: "Activity", value: "90%" },
+      { id: "activityLeft", label: "Activity left", value: "36%" },
+      { id: "activityRight", label: "Activity right", value: "64%" },
+      { id: "distance", label: "Distance", value: "0.2 mi" },
+      { id: "spasms", label: "Spasms", value: "" },
+      { id: "calories", label: "Calculated calories", value: "0 Cal", info: "Estimated from active work only; passive (motor-driven) rotation adds no calories." },
+      { id: "powerBegin", label: "Motor power begin", value: "", info: "Motor torque (Nm) at the start of the session; recorded in passive mode only." },
+      { id: "powerEnd", label: "Motor power end", value: "", info: "Motor torque (Nm) at the end of the session; recorded in passive mode only." },
+      { id: "runTime", label: "Device run time", value: "10 min 0 sec" },
+    ],
+    clinician: [
+      { id: "muscleSupport", label: "Muscle support", input: { kind: "text", placeholder: "e.g. Min assist, bilateral LE" } },
+    ],
+    treatmentLocations: ["Lower Extremity", "Upper Extremity", "Upper & Lower Extremity"],
+    narrative: [
+      "Patient engaged in active/resistive cycle ergometry to the Lower Extremity.",
+      "The patient was monitored during the therapy session and cycle parameters were adjusted based on the patient's response to the exercise. Two interventions occurred as follows:",
+      "First -> 00:00 Rotation (Forward) -> Resistance Level 0 -> RPM 10",
+      "Second -> 01:11 Rotation (Forward) -> Resistance Level 0 -> RPM 10",
+    ],
+    cptCodes: ["97110", "97530", "97112"],
+  },
+};
+
+// ─── CPT codes and note templates (Post Therapy Documentation → Add CPT / Load Template) ──
+
+export const CPT_CODES: Record<string, string> = {
+  "97032": "E-stim, attended",
+  "G0283": "E-stim, unattended",
+  "97035": "Ultrasound",
+  "97024": "Diathermy",
+  "97110": "Therapeutic exercise",
+  "97530": "Therapeutic activities",
+  "97112": "Neuromuscular re-ed",
+  "97140": "Manual therapy",
+  "97116": "Gait training",
+  "97010": "Hot / cold packs",
+};
+
+/** "97032 · E-stim, attended" */
+export const cptLabel = (code: string) => `${code} · ${CPT_CODES[code] ?? ""}`;
+
+/**
+ * A facility note template. `{tokens}` are filled from the session when the
+ * note is built: device, mode, location, skilled, setting, pain, borg, and any
+ * device record id (e.g. {protocol}, {intensity}).
+ */
+export interface NoteTemplate {
+  id: string;
+  name: string;
+  cpt: string;
+  devices: string[];
+  /** One line on what the template documents, shown when choosing it. */
+  summary: string;
+  body: string;
+}
+
+export const NOTE_TEMPLATES: NoteTemplate[] = [
+  {
+    id: "estim-pain", name: "Estim pain management", cpt: "97032", devices: ["OmniVersa"],
+    summary: "Pain before and after, lead and skin checks, vitals, parameters",
+    body: "Patient's pain was assessed prior to, during and after the e-stim treatment (post-therapy pain: {pain}). "
+      + "The positioning of the lead wires and the skin contact of the electrodes were assessed during treatment, and vital signs were monitored before, during and after. "
+      + "Electrical stimulation ({indication}, {protocol} protocol) was provided to the {location} at {intensity} on {channels}, in order to reduce pain and improve functional mobility. "
+      + "Desired muscle response was assessed and parameters adjusted as necessary. Patient received {skilled} of skilled treatment ({setting}).",
+  },
+  {
+    id: "estim-strength", name: "Estim strengthening", cpt: "G0283", devices: ["OmniVersa"],
+    summary: "Muscle recruitment goal, electrode and skin checks, tolerance",
+    body: "Electrical stimulation ({protocol} protocol) was applied to the {location} at {intensity} on {channels} to increase muscle strength and motor recruitment. "
+      + "Electrode placement and skin integrity were checked before and after treatment. Patient tolerated {skilled} of skilled treatment ({setting}) without adverse reaction.",
+  },
+  {
+    id: "cycle-ther-ex", name: "Cycle therapeutic exercise", cpt: "97110", devices: ["OmniCycle"],
+    summary: "Strength and endurance goal, activity split, distance, Borg",
+    body: "Patient performed cycle ergometry for the {location} in {mode} mode to improve strength, endurance and range of motion. "
+      + "Activity was {activity} ({activityLeft} left, {activityRight} right) over {distance}. Perceived exertion (Borg): {borg}. "
+      + "Patient received {skilled} of skilled treatment ({setting}).",
+  },
+  {
+    id: "cycle-neuro", name: "Cycle neuro re-education", cpt: "97112", devices: ["OmniCycle"],
+    summary: "Reciprocal movement and motor control, left/right symmetry",
+    body: "Patient engaged in motor-assisted cycling for the {location} to promote reciprocal movement patterns and neuromuscular control. "
+      + "Symmetry was {activityLeft} left / {activityRight} right. Patient received {skilled} of skilled treatment ({setting}).",
+  },
+];
+
+export const templatesFor = (device: string) => NOTE_TEMPLATES.filter(t => t.devices.includes(device));
+
+/** Replace {tokens}; ones with no value read "not recorded" rather than leaving a gap to fill. */
+export const fillTemplate = (body: string, tokens: Record<string, string>) =>
+  body.replace(/\{(\w+)\}/g, (_, k: string) => tokens[k] || "not recorded");
+
+// ─── Scales (Post Therapy Documentation → Add Scale) ─────────────────────────
+
+export interface ScaleSpec {
+  label: string;
+  min: number;
+  max: number;
+  /** A labelled tick every this many units. */
+  tickEvery: number;
+  /** Text after "Level:" for a value, e.g. "Moderate". */
+  level: (n: number) => string;
+  levelLabel: string;
+  /** Pain faces under the ticks, evenly spaced from min to max. */
+  faces?: boolean;
+}
+
+export const SCALES = {
+  pain: {
+    label: "Pain Scale", min: 0, max: 60, tickEvery: 5, faces: true, levelLabel: "Level",
+    level: n => (n === 0 ? "None" : n < 15 ? "Mild" : n < 35 ? "Moderate" : n < 55 ? "Severe" : "Extreme"),
+  },
+  borg: {
+    label: "Borg Scale", min: 0, max: 10, tickEvery: 1, levelLabel: "Recorded Level",
+    level: n => String(n).padStart(2, "0"),
+  },
+} satisfies Record<string, ScaleSpec>;

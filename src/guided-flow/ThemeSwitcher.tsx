@@ -1,21 +1,26 @@
 import { useCallback, useState, type KeyboardEvent } from "react";
 
 // A/B test control for the overlay theme. Deliberately plain: it is a test
-// switch, not product UI. ?gfTheme=light|dark seeds it, the choice persists in
+// switch, not product UI. ?gfTheme=dark|light|brand seeds it, the choice persists in
 // localStorage, and ?abSwitcher=0 hides the control.
 
-export type GuideTheme = "dark" | "light";
+export type GuideTheme = "dark" | "light" | "brand";
 const STORAGE_KEY = "gf-theme";
-const THEMES: GuideTheme[] = ["dark", "light"];
+const THEMES: GuideTheme[] = ["dark", "light", "brand"];
+const isTheme = (v: string | null): v is GuideTheme => THEMES.includes(v as GuideTheme);
+
+/** The theme after `t`, wrapping around (T key, arrow keys). */
+export const nextTheme = (t: GuideTheme, step = 1): GuideTheme =>
+  THEMES[(THEMES.indexOf(t) + step + THEMES.length) % THEMES.length];
 
 const params = () => new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
 
 function initialTheme(): GuideTheme {
   const q = params().get("gfTheme");
-  if (q === "dark" || q === "light") return q;
+  if (isTheme(q)) return q;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "dark" || stored === "light") return stored;
+    if (isTheme(stored)) return stored;
   } catch { /* storage unavailable */ }
   return "dark";
 }
@@ -35,7 +40,7 @@ export default function ThemeSwitcher({ theme, onChange }: { theme: GuideTheme; 
   function onKeyDown(e: KeyboardEvent) {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
-    const next = theme === "dark" ? "light" : "dark";
+    const next = nextTheme(theme, e.key === "ArrowRight" ? 1 : -1);
     onChange(next);
     (e.currentTarget.querySelector(`[data-theme="${next}"]`) as HTMLElement | null)?.focus();
   }

@@ -19,3 +19,7 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Local backup of the pre-v2 version
+/_backup-before-v2-merge/
+/publish-to-github.command

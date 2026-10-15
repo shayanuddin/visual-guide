@@ -19,6 +19,8 @@ export interface SearchStepProps<T, C extends object> extends StepApi<C> {
   getStatus?: (item: T) => { label: string; tone: StatusTone };
   matches: (item: T, query: string) => boolean;
   toContext: (item: T) => Partial<C>;
+  /** Brand only: shown under the empty field, e.g. "The patients you search will appear here." */
+  hint?: string;
 }
 
 function Highlight({ text, query }: { text: string; query: string }) {
@@ -37,16 +39,26 @@ const PILL_W = 700;
 const PILL_W_SELECTED = 744;
 
 export default function SearchStep<T, C extends object>(p: SearchStepProps<T, C>) {
-  const { items, maxResults = 4, getKey, setDirty, announce, reducedMotion: rm } = p;
+  const { items, maxResults = 4, getKey, setDirty, announce, reducedMotion: rm, setScene } = p;
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");
   const [active, setActive] = useState(0);
   const [keyNav, setKeyNav] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // A theme may show fewer rows (Brand's field sits lower): --gf-search-max-results
+  const [cap, setCap] = useState(maxResults);
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    const v = el ? parseInt(getComputedStyle(el).getPropertyValue("--gf-search-max-results")) : NaN;
+    setCap(isNaN(v) ? maxResults : Math.min(v, maxResults));
+  });
   const timer = useRef<number>(undefined);
 
   useEffect(() => { setDirty(query.length > 0); }, [query, setDirty]);
+  // Brand: a hero until the first keystroke, then the heading and field rise
+  useEffect(() => { setScene(query ? "focus" : "intro"); }, [query, setScene]);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   // Live filtering, debounced
@@ -56,9 +68,9 @@ export default function SearchStep<T, C extends object>(p: SearchStepProps<T, C>
   }, [query]);
 
   const results = useMemo(
-    () => (term ? items.filter(it => p.matches(it, term)).slice(0, maxResults) : []),
+    () => (term ? items.filter(it => p.matches(it, term)).slice(0, cap) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [term, items, maxResults],
+    [term, items, cap],
   );
   const resultsKey = results.map(getKey).join("|");
 
@@ -96,8 +108,8 @@ export default function SearchStep<T, C extends object>(p: SearchStepProps<T, C>
   }
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
-      style={{ top: "min(270px, 26.4vh)", width: 800, maxWidth: "calc(100vw - 32px)" }}>
+    <div ref={rootRef} className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
+      style={{ top: "var(--gf-search-top, min(270px, calc(var(--stage-vh, 1vh) * 26.4)))", transition: "top 0.2s ease-out", width: 800, maxWidth: "calc(var(--stage-vw, 1vw) * 100 - 32px)" }}>
 
       <label className="gf-surface gf-search gf-pill w-full flex items-center" style={{ height: 104, padding: "0 35px", gap: 17 }}>
         <span className="shrink-0"><SearchIcon size={36} strokeWidth={1.6} /></span>
@@ -118,6 +130,12 @@ export default function SearchStep<T, C extends object>(p: SearchStepProps<T, C>
           style={{ color: "inherit", boxShadow: "none" }}
         />
       </label>
+
+      {!query && p.hint && (
+        <p className="gf-brand-only text-[28px] text-center" style={{ lineHeight: "26px", letterSpacing: "1.4px", opacity: 0.4, marginTop: 65 }}>
+          {p.hint}
+        </p>
+      )}
 
       <div ref={listRef} id="gf-search-results" role="listbox" aria-label={`Matching ${p.noun}`}
         className="flex flex-col items-center w-full" style={{ gap: 18, marginTop: 31 }}>

@@ -47,6 +47,12 @@ export const M = {
   scanDoneHold: 0.4, // pause after the last arrival before Refresh fades in
   scanEmptyAfter: 8,
 
+  // QR scan (placeholder for the camera)
+  qrSweep: 1.7, // scan line, one pass top → bottom
+  qrLock: 0.35, // brackets close on the code
+  qrMorph: 0.5, // viewfinder reshapes into the device card
+  qrFailAfter: 7,
+
   // Review
   flip: 0.45,
   flipEase: "power2.inOut",

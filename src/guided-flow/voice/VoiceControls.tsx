@@ -6,6 +6,8 @@ import micIcon from "../assets/mic.svg";
 import tickIcon from "../assets/tick.svg";
 
 const SIZE = 64;
+/** In the dock the mic matches the 60px Reset / Close circles. */
+const DOCK_SIZE = 60;
 /** Waveform canvas inside the pill (left part; ✓ sits on the right). */
 const WAVE_W = 104;
 const WAVE_H = 50;
@@ -18,8 +20,10 @@ const PROFILE = [0.35, 0.55, 0.75, 0.9, 1, 0.9, 0.75, 0.55, 0.35];
  * pill with a live glowing spectrum wave on the left and ✓ on the right. The
  * wave follows the mic level; its colours come from the --gf-wave-* tokens.
  */
-export function MicButton({ listening, level, shakeKey, label, onToggle, reducedMotion: rm }: {
+export function MicButton({ listening, level, shakeKey, label, onToggle, reducedMotion: rm, brand = false }: {
   listening: boolean;
+  /** Fill with the host's Ask! gradient instead of the dock glass. */
+  brand?: boolean;
   level: RefObject<number>;
   /** Increment to shake (empty transcript). */
   shakeKey: number;
@@ -32,6 +36,7 @@ export function MicButton({ listening, level, shakeKey, label, onToggle, reduced
   const waveRef = useRef<HTMLSpanElement>(null);
   const tickRef = useRef<HTMLImageElement>(null);
   const mounted = useRef(false);
+  const size = brand ? DOCK_SIZE : SIZE;
 
   // Morph circle ↔ pill
   useLayoutEffect(() => {
@@ -39,7 +44,7 @@ export function MicButton({ listening, level, shakeKey, label, onToggle, reduced
     if (!btn || !mic || !wave || !tick) return;
     const first = !mounted.current;
     mounted.current = true;
-    const width = listening ? M.micPillWidth : SIZE;
+    const width = listening ? M.micPillWidth : size;
 
     if (first) {
       gsap.set(btn, { width });
@@ -112,8 +117,8 @@ export function MicButton({ listening, level, shakeKey, label, onToggle, reduced
 
   return (
     <button ref={btnRef} type="button" onClick={onClick} aria-label={label} aria-pressed={listening}
-      className="gf-surface gf-dock relative rounded-full shrink-0 overflow-hidden"
-      style={{ width: SIZE, height: SIZE }}>
+      className={`gf-surface gf-dock relative rounded-full shrink-0 overflow-hidden ${brand ? "gf-mic-brand" : ""}`}
+      style={{ width: size, height: size }}>
       <img ref={micRef} src={micIcon} alt="" width={32} height={32}
         className="absolute pointer-events-none" style={{ left: "50%", top: "50%", translate: "-50% -50%" }} />
       <span ref={waveRef} aria-hidden="true"

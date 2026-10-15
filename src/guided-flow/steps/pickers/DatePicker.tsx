@@ -30,20 +30,32 @@ export function validateDob(v: string): string {
   if (!p || ys(v) < 4 || !calcAge(v)) return "Enter a valid date (MM/DD/YYYY).";
   return "";
 }
+
+/** Any real date up to today (e.g. a note's effective date). */
+export function validatePastDate(v: string, label: string): string {
+  if (!v) return `${label} is required.`;
+  const p = parseDob(v);
+  if (!p || ys(v) < 4) return "Enter a valid date (MM/DD/YYYY).";
+  if (new Date(p.y, p.m, p.d) > new Date()) return `${label} can't be in the future.`;
+  return "";
+}
 const ys = (v: string) => (v.split("/")[2] ?? "").length;
 
 export default function DatePicker({ spec, values, onConfirm, flipId }: PickerProps<Spec>) {
+  const dob = !spec.label;
+  const label = spec.label ?? "Date of birth";
+  const validate = (v: string) => (dob ? validateDob(v) : validatePastDate(v, label));
   const [value, setValue] = useState(values[spec.key] ?? "");
   const [error, setError] = useState("");
   const parsed = parseDob(value);
   const today = new Date();
-  const [viewYear, setViewYear] = useState(parsed?.y ?? today.getFullYear() - 40);
-  const [viewMonth, setViewMonth] = useState(parsed?.m ?? 0);
+  const [viewYear, setViewYear] = useState(parsed?.y ?? today.getFullYear() - (dob ? 40 : 0));
+  const [viewMonth, setViewMonth] = useState(parsed?.m ?? (dob ? 0 : today.getMonth()));
   const [mode, setMode] = useState<"days" | "months" | "years">("days");
-  const age = validateDob(value) === "" ? calcAge(value) : "";
+  const age = dob && validateDob(value) === "" ? calcAge(value) : "";
 
   function confirm(v = value) {
-    const err = validateDob(v);
+    const err = validate(v);
     if (err) { setError(err); return; }
     onConfirm({ [spec.key]: v });
   }
@@ -75,7 +87,7 @@ export default function DatePicker({ spec, values, onConfirm, flipId }: PickerPr
     ...Array.from({ length: daysIn(viewYear, viewMonth) }, (_, i) => i + 1),
   ];
   while (cells.length % 7) cells.push(null);
-  const years = Array.from({ length: 100 }, (_, i) => today.getFullYear() - i);
+  const years = Array.from({ length: dob ? 100 : 3 }, (_, i) => today.getFullYear() - i);
 
   const cellBtn = (sel: boolean) => ({
     background: sel ? "var(--gf-selected-bg)" : "transparent",
@@ -93,13 +105,13 @@ export default function DatePicker({ spec, values, onConfirm, flipId }: PickerPr
           placeholder="MM/DD/YYYY"
           onChange={e => type(e.target.value)}
           onKeyDown={e => e.key === "Enter" && confirm()}
-          aria-label="Date of birth, MM/DD/YYYY"
+          aria-label={`${label}, MM/DD/YYYY`}
           aria-invalid={!!error}
           className={`${inputClass} flex-1 text-[32px] font-semibold tracking-wide tabular-nums`}
           style={inputStyle}
         />
         {age && <span className="gf-muted text-[17px] tabular-nums shrink-0">{age} yrs</span>}
-        <ConfirmButton valid={validateDob(value) === ""} onClick={() => confirm()} />
+        <ConfirmButton valid={validate(value) === ""} onClick={() => confirm()} />
       </div>
       <PickerError message={error} />
 

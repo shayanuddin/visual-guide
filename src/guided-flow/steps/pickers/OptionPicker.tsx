@@ -34,14 +34,23 @@ export default function OptionPicker({ spec, values, onConfirm }: PickerProps<Sp
             onClick={() => pick(o)}
             className={`gf-surface gf-tile ${tiles ? "gf-card justify-center text-center" : "gf-pill text-left"} flex items-center ${isSel ? "gf-selected" : ""}`}
             style={{
-              ...(tiles ? { width: 220, height: 146.5, padding: 16 } : { width: 372, minHeight: 64, padding: "10px 26px" }),
+              ...(tiles ? { width: 220, height: 146.5, padding: 16 }
+                : spec.hints ? { width: 372, minHeight: 88, padding: "12px 26px", borderRadius: 26 }
+                : { width: 372, minHeight: 64, padding: "10px 26px" }),
               opacity: picked && !isSel ? M.dimOpacity : undefined,
               transition: picked ? `opacity ${M.select}s ease, background-color ${M.select}s ease` : undefined,
               outline: isCurrent ? "2px solid var(--gf-fg)" : "none",
               outlineOffset: -2,
             }}
           >
-            <span className={tiles ? "text-[24px] font-bold" : "text-[18px] font-medium leading-snug"}>{o}</span>
+            {spec.hints?.[o] ? (
+              <span className="flex flex-col min-w-0" style={{ gap: 3 }}>
+                <span className="text-[18px] font-semibold leading-snug">{o}</span>
+                <span className="gf-muted text-[15px] leading-snug">{spec.hints[o]}</span>
+              </span>
+            ) : (
+              <span className={tiles ? "text-[24px] font-bold" : "text-[18px] font-medium leading-snug"}>{o}</span>
+            )}
           </button>
         );
       })}

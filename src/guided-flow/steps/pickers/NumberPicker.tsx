@@ -15,9 +15,11 @@ export default function NumberPicker({ spec, values, onConfirm, flipId }: Picker
   const [error, setError] = useState("");
   const valid = validateNumber(value, spec) === "";
 
+  const inc = spec.step ?? 1;
+
   function step(delta: number) {
     const n = parseFloat(value) || spec.min;
-    setValue(String(Math.max(spec.min, Math.min(spec.max, n + delta))));
+    setValue(String(Math.max(spec.min, Math.min(spec.max, n + delta * inc))));
     setError("");
   }
 
@@ -39,6 +41,7 @@ export default function NumberPicker({ spec, values, onConfirm, flipId }: Picker
             inputMode="decimal"
             min={spec.min}
             max={spec.max}
+            step={inc}
             value={value}
             onChange={e => { setValue(e.target.value); setError(""); }}
             onKeyDown={e => e.key === "Enter" && confirm()}

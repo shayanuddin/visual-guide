@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import GuidedFlow, { type GuidedFlowHandle, type GuideStepState } from "./guided-flow/GuidedFlow";
 import { spirometryFlow, type SpirometryContext } from "./guided-flow/flows/spirometry";
+import { postTherapyFlow, type PostTherapyContext } from "./guided-flow/flows/postTherapy";
+import PostTherapyScreen from "./PostTherapyScreen";
 import { resolveReply, scriptedTranscript, type AssistantReply, type ReplyChip } from "./guided-flow/voiceScripts";
 
 // Follows Vite's base URL so assets resolve when hosted under a sub-path (e.g. GitHub Pages).
@@ -229,7 +231,7 @@ function PatientRow({
 }
 
 // ─── Quick Connect Screen ─────────────────────────────────────────────────────
-function QuickConnectScreen({ onClose, onOpenAsk, onOpenSpiro }: { onClose: () => void; onOpenAsk: () => void; onOpenSpiro: () => void }) {
+function QuickConnectScreen({ onClose, onOpenAsk, onOpenSpiro, onOpenQr }: { onClose: () => void; onOpenAsk: () => void; onOpenSpiro: () => void; onOpenQr: () => void }) {
   const [sliderValue, setSliderValue] = useState(5);
   const [notes, setNotes] = useState("");
   const [visible, setVisible] = useState(false);
@@ -317,7 +319,7 @@ function QuickConnectScreen({ onClose, onOpenAsk, onOpenSpiro }: { onClose: () =
                 <p className="absolute text-white text-[9.29px] whitespace-nowrap" style={{ fontFamily: SF, fontWeight: 700, inset: "75.66% 35.96% 11.84% 34.87%" }}>PRE</p>
               </div>
             </button>
-            <button className="bg-[#f2f8f9] flex items-center justify-center overflow-clip rounded-full shrink-0 size-[90px] hover:bg-[#e0f2f5] transition-colors">
+            <button className="bg-[#f2f8f9] flex items-center justify-center overflow-clip rounded-full shrink-0 size-[90px] hover:bg-[#e0f2f5] transition-colors" onClick={onOpenQr} aria-label="Scan QR">
               <img alt="" className="size-[50px]" src={imgQcQr} />
             </button>
             <button className="bg-[#f2f8f9] flex items-center justify-center overflow-clip rounded-full shrink-0 size-[90px] hover:bg-[#e0f2f5] transition-colors" onClick={onOpenSpiro}>
@@ -551,6 +553,45 @@ const araSteps = [
   { title: "Post-Assessment Actions", body: "Tap 'Save & Sync' to push results to the EMR. Add clinical notes, flag for physician review, or schedule a follow-up." },
 ];
 
+const qrSteps = [
+  { title: "Quick Connect", body: "Tap the Quick Connect icon in the top navigation bar." },
+  { title: "Select Patient", body: "Search for the patient who just finished the device session, by name or MRN." },
+  { title: "Scan the Device QR Code", body: "Tap Scan QR and point the iPad at the code on the device's Session Summary screen. The session data imports automatically." },
+  { title: "Confirm Device Data", body: "Review the treatment records the device sent (location, intensity, run time…). Add anything the device can't measure, like patient response or muscle support." },
+  { title: "Therapy Setting", body: "Choose Individual, Concurrent, Group or Co-treatment." },
+  { title: "Treatment Details", body: "Slide Skilled Time (including device run time), pick the treatment location and type any placement notes." },
+  { title: "Scales", body: "Optionally record the Pain Scale and Borg Scale for this session." },
+  { title: "Note Info", body: "Confirm the effective date, time and note type (Progress Note by default)." },
+  { title: "Post Therapy Documentation", body: "Review the generated note, add CPT codes or a scale if needed, then Transmit to EMR or Save to Active Notes." },
+];
+
+/** Interactive guides the chat can start. */
+type GuideId = "spirometry" | "post-therapy";
+
+interface ChatTopic {
+  guide: GuideId;
+  intro: string;
+  steps: { title: string; body: string }[];
+  matches: RegExp;
+}
+
+const CHAT_TOPICS: ChatTopic[] = [
+  {
+    guide: "post-therapy",
+    intro: "Here's how to document a device session with QR Scan:",
+    steps: qrSteps,
+    matches: /\b(qr|scan|post[- ]?therapy|device session|omni\w*)\b/i,
+  },
+  {
+    guide: "spirometry",
+    intro: "Here's how to perform an ARA Assessment in ACPlus:",
+    steps: araSteps,
+    matches: /.*/,
+  },
+];
+
+const topicFor = (text: string) => CHAT_TOPICS.find(t => t.matches.test(text)) ?? CHAT_TOPICS[CHAT_TOPICS.length - 1];
+
 // ─── Chat panel ───────────────────────────────────────────────────────────────
 type ChatPhase = "idle" | "thinking" | "answered";
 
@@ -566,7 +607,7 @@ interface AskGuide {
 
 interface AskPanelProps {
   onClose: () => void;
-  onStartGuide: () => void;
+  onStartGuide: (guide: GuideId) => void;
   slideOut?: boolean;
   guide?: AskGuide;
 }
@@ -582,9 +623,9 @@ function GuideChip({ label, onClick, back }: { label: string; onClick: () => voi
   return (
     <button onClick={onClick}
       className="flex items-center gap-1.5 hover:bg-gray-50 transition-colors"
-      style={{ width: "fit-content", background: "#FFFFFF", boxShadow: "0px 4px 20px rgba(4,6,15,0.08)", borderRadius: 100, padding: "8px 14px", border: "1px solid #E3EEF0" }}>
-      {back && <span aria-hidden="true" style={{ color: "#007A8B", fontSize: 15, lineHeight: 1 }}>←</span>}
-      <span style={{ fontFamily: SF, fontWeight: 500, fontSize: 15, color: back ? "#007A8B" : "#0F0F0F" }}>{label}</span>
+      style={{ width: "fit-content", background: "#FFFFFF", boxShadow: "0px 4px 20px rgba(4,6,15,0.08)", borderRadius: 100, padding: "11px 18px", border: "1px solid #E3EEF0" }}>
+      {back && <span aria-hidden="true" style={{ color: "#007A8B", fontSize: 18, lineHeight: 1 }}>←</span>}
+      <span style={{ fontFamily: SF, fontWeight: 500, fontSize: 18, color: back ? "#007A8B" : "#0F0F0F" }}>{label}</span>
     </button>
   );
 }
@@ -596,6 +637,8 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
   const [phase, setPhase] = useState<ChatPhase>(guide?.voiceMessage ? "thinking" : "idle");
   const [guideUser, setGuideUser] = useState(guide?.voiceMessage ?? "");
   const [guideReply, setGuideReply] = useState<AssistantReply | null>(null);
+  const [asked, setAsked] = useState("");
+  const topic = topicFor(asked);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const replyRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -626,6 +669,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
   function handleSend() {
     if (!inputText.trim()) return;
     setPhase("thinking");
+    setAsked(inputText.trim());
     if (guide) {
       const text = inputText.trim();
       setGuideUser(text);
@@ -644,6 +688,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
 
   const suggestions = [
     "How do I perform ARA Assessment?",
+    "How do I document a session using QR Scan?",
     "How do I log in to ACPlus for the first time?",
     "I'm not sure which login option I should use.",
     "My facility uses Microsoft can I log in with my Microsoft account?",
@@ -733,13 +778,13 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
                       background: "#FFFFFF",
                       boxShadow: "0px 4px 20px rgba(4,6,15,0.08)",
                       borderRadius: 100,
-                      paddingTop: 8,
-                      paddingRight: 14,
-                      paddingBottom: 8,
-                      paddingLeft: 14,
+                      paddingTop: 11,
+                      paddingRight: 18,
+                      paddingBottom: 11,
+                      paddingLeft: 18,
                     }}
                   >
-                    <p style={{ fontFamily: SF, fontWeight: 300, fontSize: 15, color: "#0F0F0F", margin: 0 }}>{q}</p>
+                    <p style={{ fontFamily: SF, fontWeight: 300, fontSize: 18, color: "#0F0F0F", margin: 0 }}>{q}</p>
                   </button>
                 ))}
                 {/* More pill */}
@@ -750,14 +795,14 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
                     background: "#FFFFFF",
                     boxShadow: "0px 4px 20px rgba(4,6,15,0.08)",
                     borderRadius: 100,
-                    paddingTop: 8,
-                    paddingRight: 14,
-                    paddingBottom: 8,
-                    paddingLeft: 14,
+                    paddingTop: 11,
+                    paddingRight: 18,
+                    paddingBottom: 11,
+                    paddingLeft: 18,
                   }}
                 >
-                  <img alt="" src={imgAdd} style={{ width: 16, height: 16 }} />
-                  <p style={{ fontFamily: SF, fontWeight: 300, fontSize: 15, color: "#0F0F0F", margin: 0 }}>More</p>
+                  <img alt="" src={imgAdd} style={{ width: 20, height: 20 }} />
+                  <p style={{ fontFamily: SF, fontWeight: 300, fontSize: 18, color: "#0F0F0F", margin: 0 }}>More</p>
                 </button>
               </div>
             </>
@@ -769,7 +814,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
               <div className="flex justify-end">
                 <div className="rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%]" style={{ background: GRADIENT }}>
                   <p className="text-white text-[15px]" style={{ fontFamily: SF, fontWeight: 500 }}>
-                    {guide ? guideUser : "How do I perform ARA Assessment?"}
+                    {guide ? guideUser : asked}
                   </p>
                 </div>
               </div>
@@ -841,7 +886,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
               <div className="flex justify-end">
                 <div className="rounded-2xl rounded-tr-sm px-4 py-3 max-w-[80%]" style={{ background: GRADIENT }}>
                   <p className="text-white text-[15px]" style={{ fontFamily: SF, fontWeight: 500 }}>
-                    {guide ? guideUser : "How do I perform ARA Assessment?"}
+                    {guide ? guideUser : asked}
                   </p>
                 </div>
               </div>
@@ -857,9 +902,9 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
 
                 <div className="ml-9 flex flex-col gap-3">
                   <p className="text-[#434343] text-[14px]" style={{ fontFamily: SF }}>
-                    Here's how to perform an ARA Assessment in ACPlus:
+                    {topic.intro}
                   </p>
-                  {araSteps.map((step, i) => (
+                  {topic.steps.map((step, i) => (
                     <div key={i} className="flex flex-col gap-0.5">
                       <p className="text-[#434343] text-[14px]" style={{ fontFamily: SF, fontWeight: 700 }}>
                         Step {i + 1}: {step.title}
@@ -872,7 +917,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
 
                   {/* CTA */}
                   <button
-                    onClick={onStartGuide}
+                    onClick={() => onStartGuide(topic.guide)}
                     className="mt-3 w-full text-left rounded-2xl px-4 py-4 hover:brightness-95 transition-all active:scale-[0.98]"
                     style={{ backgroundColor: "#f0f5f6" }}
                   >
@@ -905,7 +950,7 @@ function AskPanel({ onClose, onStartGuide, slideOut = false, guide }: AskPanelPr
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 rows={2}
                 className="w-full resize-none outline-none bg-transparent"
-                style={{ fontFamily: SF, fontSize: 15, fontWeight: 300, color: "#434343", lineHeight: "22px" }}
+                style={{ fontFamily: SF, fontSize: 19, fontWeight: 300, color: "#434343", lineHeight: "28px" }}
                 placeholder="Ask me anything..."
               />
               {/* Bottom action row */}
@@ -1264,7 +1309,7 @@ function TestExecutionScreen({ onBack, onEndTest, patientName, deviceSerial, tes
 function TestCompletedModal({ onExit, onSeeResults }: { onExit: () => void; onSeeResults: () => void }) {
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="bg-white rounded-[20px] shadow-2xl flex flex-col gap-[28px] p-[40px]" style={{ width: 560, maxWidth: "90vw" }}>
+      <div className="bg-white rounded-[20px] shadow-2xl flex flex-col gap-[28px] p-[40px]" style={{ width: 560, maxWidth: "90%" }}>
         <h2 className="text-[#434343] text-[28px] text-center" style={{ fontFamily: SF, fontWeight: 700 }}>
           Test Completed
         </h2>
@@ -2107,13 +2152,15 @@ export default function App() {
   const [testCompletedOpen, setTestCompletedOpen] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
   const [selectActionOpen, setSelectActionOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [activeGuide, setActiveGuide] = useState<GuideId | null>(null);
+  const guideOpen = activeGuide !== null;
+  const [postTherapy, setPostTherapy] = useState<Required<PostTherapyContext> | null>(null);
   const [chatSlideOut, setChatSlideOut] = useState(false);
   const [guidePatientName, setGuidePatientName] = useState<string | undefined>();
   const [guideDeviceSerial, setGuideDeviceSerial] = useState<string | undefined>();
   const [guideTestType, setGuideTestType] = useState<string | undefined>();
   const [testFromGuide, setTestFromGuide] = useState(false);
-  const [guideStep, setGuideStep] = useState<GuideStepState<SpirometryContext> | null>(null);
+  const [guideStep, setGuideStep] = useState<GuideStepState<SpirometryContext | PostTherapyContext> | null>(null);
   const [askVoice, setAskVoice] = useState<string | null>(null);
   const guideRef = useRef<GuidedFlowHandle>(null);
 
@@ -2140,27 +2187,41 @@ export default function App() {
     ? `${guideStep.stepLabel}${guideStep.context.patient ? ` · ${guideStep.context.patient.name}` : ""}`
     : "";
 
-  function handleStartGuide() {
+  function handleStartGuide(guide: GuideId) {
     setChatSlideOut(true);
     setTimeout(() => {
       setAskOpen(false);
       setChatSlideOut(false);
-      setGuideOpen(true);
+      setActiveGuide(guide);
     }, 260);
+  }
+
+  function closeGuide() {
+    setActiveGuide(null);
+    setGuideStep(null);
   }
 
   function handleGuideStart({ patient, device, test }: SpirometryContext) {
     setGuidePatientName(patient?.name);
     setGuideDeviceSerial(device?.serial);
     setGuideTestType(test?.label);
-    setGuideOpen(false);
-    setGuideStep(null);
+    closeGuide();
     setTestFromGuide(true);
     setTestOpen(true);
   }
 
+  function handlePostTherapyDone(context: PostTherapyContext) {
+    closeGuide();
+    setPostTherapy(context as Required<PostTherapyContext>);
+  }
+
+  const guideVoice = (flowId: GuideId) => ({
+    scriptFor: (stepId: string) => scriptedTranscript(flowId, stepId),
+    onSend: handleVoiceSend,
+  });
+
   return (
-    <div className="bg-[#fcfcfc] h-screen w-full relative overflow-hidden flex flex-col">
+    <div className="bg-[#fcfcfc] h-full w-full relative overflow-hidden flex flex-col">
       {/* Background decorative blobs */}
       <div className="absolute h-[310px] left-0 opacity-70 overflow-clip top-0 w-full pointer-events-none">
         <div className="absolute contents inset-[0_0_0_25.15%]">
@@ -2313,8 +2374,8 @@ export default function App() {
         </section>
       </div>
 
-      {/* Ask button — stays above the guide overlay so the assistant is always reachable */}
-      <div className="fixed transition-[opacity,visibility] duration-200" style={{ right: 36, bottom: 24, width: 155, height: 66, zIndex: guideOpen ? 70 : 40, opacity: guideOpen && askOpen ? 0 : 1, visibility: guideOpen && askOpen ? "hidden" : "visible" }}>
+      {/* Ask button — hidden while a guide is open (the guide's own mic opens the chat) */}
+      <div className="fixed transition-[opacity,visibility] duration-200" style={{ right: 36, bottom: 24, width: 155, height: 66, zIndex: guideOpen ? 70 : 40, opacity: guideOpen ? 0 : 1, visibility: guideOpen ? "hidden" : "visible", pointerEvents: guideOpen ? "none" : undefined }}>
         <div aria-hidden="true" className="absolute" style={{ left: 20, top: 31, width: 114, height: 35, borderRadius: 22, filter: "blur(11.7px)", backgroundImage: "linear-gradient(162.9deg, #007A8B 0%, #3AAF4D 37%, #A8CB38 85.6%)" }} />
         <button
           className="absolute flex items-center hover:opacity-90 transition-opacity"
@@ -2330,20 +2391,26 @@ export default function App() {
       </div>
 
       {/* GuidedFlow wizard */}
-      {guideOpen && (
+      {activeGuide === "spirometry" && (
         <GuidedFlow
           ref={guideRef}
           flow={spirometryFlow}
-          onClose={() => { setGuideOpen(false); setGuideStep(null); }}
+          onClose={closeGuide}
           onStart={handleGuideStart}
           paused={askOpen}
           onStepChange={setGuideStep}
-          voice={{
-            scriptFor: scriptedTranscript,
-            onSend: handleVoiceSend,
-            // Beside Ask! (pill spans 36+4 … 36+150 from the right edge, 26px up): 16px gap, same centre line
-            anchor: { right: 36 + 150 + 16, bottom: 24 + 2 },
-          }}
+          voice={guideVoice("spirometry")}
+        />
+      )}
+      {activeGuide === "post-therapy" && (
+        <GuidedFlow
+          ref={guideRef}
+          flow={postTherapyFlow}
+          onClose={closeGuide}
+          onStart={handlePostTherapyDone}
+          paused={askOpen}
+          onStepChange={setGuideStep}
+          voice={guideVoice("post-therapy")}
         />
       )}
 
@@ -2355,7 +2422,7 @@ export default function App() {
           slideOut={chatSlideOut}
           guide={guideOpen && guideStep ? {
             label: guideChatLabel,
-            reply: text => resolveReply(guideStep.stepId, text),
+            reply: text => resolveReply(activeGuide!, guideStep.stepId, text),
             onChip: handleGuideChip,
             voiceMessage: askVoice ?? undefined,
           } : undefined}
@@ -2363,7 +2430,13 @@ export default function App() {
       )}
 
       {/* Quick Connect screen */}
-      {qcOpen && <QuickConnectScreen onClose={() => setQcOpen(false)} onOpenAsk={() => setAskOpen(true)} onOpenSpiro={() => setSpiroOpen(true)} />}
+      {qcOpen && <QuickConnectScreen onClose={() => setQcOpen(false)} onOpenAsk={() => setAskOpen(true)} onOpenSpiro={() => setSpiroOpen(true)} onOpenQr={() => setActiveGuide("post-therapy")} />}
+
+      {/* Post Therapy Documentation, filled in by the Scan QR guide */}
+      {postTherapy && (
+        <PostTherapyScreen context={postTherapy} onClose={() => setPostTherapy(null)}
+          logo={<Logo className="h-[48px] relative w-[169.714px]" />} cancelIcon={imgQcCancel} underline={imgQcUnderline} />
+      )}
 
       {/* Spirometer screen */}
       {spiroOpen && <SpiorometerScreen onBack={() => setSpiroOpen(false)} onConnect={() => { setPftOpen(true); setSpiroOpen(false); }} />}

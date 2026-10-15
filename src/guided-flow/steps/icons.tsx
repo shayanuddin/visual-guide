@@ -19,14 +19,13 @@ export const ResetIcon = ({ size = 24, strokeWidth = 1.8 }: IconProps) => (
   <svg {...base(size, strokeWidth)}><path d="M20 12a8 8 0 1 1-2.34-5.66" /><polyline points="20 4 20 9 15 9" /></svg>
 );
 
-/** Signal waves around a dot: "look for nearby devices" (distinct from Reset). */
-export const SignalIcon = ({ size = 20, strokeWidth = 1.8 }: IconProps) => (
+/** Two chasing arrows: the standard "refresh" (distinct from Reset's single arrow). */
+export const RefreshIcon = ({ size = 20, strokeWidth = 1.8 }: IconProps) => (
   <svg {...base(size, strokeWidth)}>
-    <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-    <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
-    <circle cx="12" cy="12" r="2" />
-    <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
-    <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M8 16H3v5" />
   </svg>
 );
 
@@ -34,8 +33,40 @@ export const ArrowUpRightIcon = ({ size = 22, strokeWidth = 1.8 }: IconProps) =>
   <svg {...base(size, strokeWidth)}><line x1="6" y1="18" x2="18" y2="6" /><polyline points="8 6 18 6 18 16" /></svg>
 );
 
-export const PencilIcon = ({ size = 16, strokeWidth = 1.8 }: IconProps) => (
-  <svg {...base(size, strokeWidth)}><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z" /></svg>
+export const ArrowRightIcon = ({ size = 22, strokeWidth = 1.8 }: IconProps) => (
+  <svg {...base(size, strokeWidth)}><line x1="4" y1="12" x2="20" y2="12" /><polyline points="13 5 20 12 13 19" /></svg>
+);
+
+/** Rounded QR glyph for the scan step and the Quick Connect suggestion. */
+export const QrIcon = ({ size = 24, strokeWidth = 1.8 }: IconProps) => (
+  <svg {...base(size, strokeWidth)}>
+    <rect x="3.5" y="3.5" width="6" height="6" rx="1.2" />
+    <rect x="14.5" y="3.5" width="6" height="6" rx="1.2" />
+    <rect x="3.5" y="14.5" width="6" height="6" rx="1.2" />
+    <path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M18 18h2.5v2.5h-3" />
+  </svg>
+);
+
+/** Pain faces for the pain scale: 0 calm → 3 distressed. */
+export const PainFace = ({ level, size = 28, strokeWidth = 1.6 }: IconProps & { level: 0 | 1 | 2 | 3 }) => (
+  <svg {...base(size, strokeWidth)}>
+    <circle cx="12" cy="12" r="10" />
+    {level === 3 ? (
+      <>
+        <polyline points="7.5 8.5 10 10 7.5 11.5" />
+        <polyline points="16.5 8.5 14 10 16.5 11.5" />
+        <path d="M7.5 16.5c1-1 2-1 3 0s2 1 3 0 2-1 3 0" />
+      </>
+    ) : (
+      <>
+        <circle cx="9" cy="9.5" r="1.2" />
+        <circle cx="15" cy="9.5" r="1.2" />
+        {level === 0 && <path d="M8 14.5a5 5 0 0 0 8 0" />}
+        {level === 1 && <line x1="8.5" y1="15.5" x2="15.5" y2="15.5" />}
+        {level === 2 && <path d="M8.5 17a4.5 4.5 0 0 1 7 0" />}
+      </>
+    )}
+  </svg>
 );
 
 export const CheckIcon = ({ size = 24, strokeWidth = 2.2 }: IconProps) => (
