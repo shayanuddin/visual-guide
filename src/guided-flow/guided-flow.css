@@ -735,9 +735,18 @@ button.gf-item:not(:disabled):hover::before {
   -webkit-mask: var(--icon) center / contain no-repeat;
   mask: var(--icon) center / contain no-repeat;
 }
+/* Long read-aloud text needs 4.5:1. Dark's white glass over the white host
+   only reaches ~3:1, so the reading card is a dark glass there instead.
+   Light and Brand tiles already clear it. */
+.gf-root[data-gf-theme="dark"] .gf-surface.gf-tile.gf-reading {
+  --_bg: rgba(20, 20, 20, 0.5);
+}
 .gf-instr-scroll {
   scroll-behavior: smooth;
   overscroll-behavior: contain;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gf-instr-scroll { scroll-behavior: auto; }
 }
 .gf-instr-more {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);

@@ -4,6 +4,7 @@ import { M } from "../motion";
 import type { StepApi } from "../flows/types";
 import type { InstructionIcon, TestInstructions } from "../data";
 import ProceedButton from "./ProceedButton";
+import { ChevronIcon } from "./icons";
 
 // Read-aloud instructions before a test begins: a scrolling glass card of
 // icon + text lines, and the proceed button that starts the test. Nothing to
@@ -69,13 +70,19 @@ export default function InstructionsStep<C extends object>(p: InstructionsStepPr
     return () => setCommandHandler(null);
   }, [setCommandHandler]);
 
+  // Same job as the ↓ button on the app's own Instructions screen
+  function scrollDown() {
+    const el = scrollRef.current;
+    if (el) el.scrollBy({ top: el.clientHeight * 0.8, behavior: rm ? "auto" : "smooth" });
+  }
+
   const { intro, lines, outro } = p.instructions;
 
   return (
-    <div className="gf-instructions absolute inset-0 flex justify-center">
-      <section aria-label={p.title} className="gf-surface gf-tile gf-card flex flex-col overflow-hidden"
+    <div className="gf-instructions absolute inset-0 flex justify-center items-start">
+      <div className="gf-surface gf-tile gf-reading gf-card flex flex-col overflow-hidden"
         style={{ width: 820, maxHeight: "100%" }}>
-        <div ref={scrollRef} onScroll={measure} tabIndex={0} role="region" aria-label={`${p.title}, scrollable`}
+        <div ref={scrollRef} onScroll={measure} tabIndex={0} role="region" aria-label={p.title}
           className={`gf-scroll gf-instr-scroll overflow-y-auto ${more ? "gf-instr-more" : ""}`}
           style={{ padding: "30px 40px 34px 40px", userSelect: "text" }}>
           <h3 className="gf-not-brand text-[28px] font-bold" style={{ lineHeight: 1.25, marginBottom: 14 }}>{p.title}</h3>
@@ -92,7 +99,14 @@ export default function InstructionsStep<C extends object>(p: InstructionsStepPr
           </ol>
           <p className="gf-muted text-[19px]" style={{ lineHeight: "28px" }}>{outro}</p>
         </div>
-      </section>
+        {more && (
+          <button type="button" onClick={scrollDown} aria-label="Scroll down to read more"
+            className="gf-surface gf-dock absolute rounded-full flex items-center justify-center"
+            style={{ right: 20, bottom: 16, width: 48, height: 48 }}>
+            <span style={{ display: "flex", transform: "rotate(90deg)" }}><ChevronIcon dir="right" size={22} strokeWidth={2} /></span>
+          </button>
+        )}
+      </div>
 
       <ProceedButton ready label={p.proceedLabel} isLastStep={p.isLastStep} reducedMotion={rm} onClick={proceed} />
     </div>
