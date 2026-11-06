@@ -15,6 +15,7 @@
   --gf-radius-pill: 9999px;
 
   /* Status dots — the only colour allowed, and tiny */
+  --gf-status-info: #38bdf8;
   --gf-status-positive: #4ade80;
   --gf-status-warning: #fbbf24;
 
@@ -221,15 +222,6 @@
   --gf-secondary-border: 1px solid rgba(67, 67, 67, 0.22);
   --gf-secondary-text: #434343;
   --gf-secondary-veil: rgba(67, 67, 67, 0.06);
-}
-
-/* Theme crossfade: briefly transition colour properties only (GSAP owns
-   opacity and transform). */
-.gf-root.gf-theme-switching,
-.gf-root.gf-theme-switching * {
-  transition-property: background-color, border-color, color, box-shadow !important;
-  transition-duration: 0.2s !important;
-  transition-timing-function: ease !important;
 }
 
 .gf-scrim {
@@ -441,25 +433,6 @@ button.gf-item:not(:disabled):hover::before {
 .gf-proceed-ring-outer {
   background: var(--gf-ring-outer-bg);
   box-shadow: var(--gf-ring-outer-glow);
-}
-
-/* ── A/B theme switcher — a test control, deliberately not themed ─────── */
-.gf-ab {
-  font: 600 12px/1 var(--gf-font);
-  color: #333;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px dashed #8b8c8e;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-.gf-ab [role="radio"] {
-  color: #333;
-}
-.gf-ab [role="radio"][aria-checked="true"] {
-  background: #333;
-  color: #fff;
-}
-.gf-ab :focus-visible {
-  box-shadow: 0 0 0 2px #333;
 }
 
 /* Minimal scrollbar: a thin rounded thumb in the text colour, no track or
@@ -714,46 +687,94 @@ button.gf-item:not(:disabled):hover::before {
   display: block;
 }
 
-/* …and the reverse: things Brand's step heading already says */
-.gf-root[data-gf-theme="brand"] .gf-not-brand {
-  display: none;
+/* Proceed while something is still missing (Figma 11784:15940): a flat grey
+   disc with a darker arrow, no pulse */
+.gf-proceed-disabled {
+  background: #a8a9aa;
+  color: #8b8c8e;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
 }
 
-/* ── Instructions step ─────────────────────────────────────────────────────
-   The card fills the space between the heading (Brand) and the dock, and
-   scrolls when the lines don't fit. */
-.gf-instructions {
-  padding-top: 110px;
-  padding-bottom: 140px; /* clears the dock */
+/* ── Instructions wheel (Figma 12063:110216) ───────────────────────────────
+   Dark glass pills over the light scrim; distance from focus is drawn by the
+   step's own opacity/scale, these are the pill at full strength. The edges
+   fade out, the bottom one clearing the caption above the dock. */
+.gf-instr-wheel {
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 60px, #000 150px, #000 calc(100% - 262px), transparent calc(100% - 214px));
+  mask-image: linear-gradient(to bottom, transparent 60px, #000 150px, #000 calc(100% - 262px), transparent calc(100% - 214px));
 }
-.gf-root[data-gf-theme="brand"] .gf-instructions {
-  padding-top: 200px; /* below Brand's heading, as on the choice step */
+.gf-instr-wheel:active { cursor: grabbing; }
+.gf-instr-pill {
+  padding: 3.56px 22px 3.56px 3.56px;
+  gap: 14px;
+  border-radius: 999px;
+  background: rgba(51, 51, 51, 0.83);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 28px rgba(0, 0, 0, 0.14);
+  color: #fff;
+  overflow: hidden;
+  will-change: transform, opacity;
 }
-/* The ACPlus drawings, painted in the text colour so they suit every theme */
+/* Fuel: a darker fill sweeping left → right with a liquid edge */
+.gf-instr-fuel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(100% + 30px);
+  display: flex;
+  opacity: 0; /* GSAP owns its position (xPercent) */
+  pointer-events: none;
+}
+/* Solid (#434343, Figma's filled tone) so the flat part and the wavy edge
+   can overlap without a seam */
+.gf-instr-fuel::before {
+  content: "";
+  flex: 1;
+  background: #434343;
+}
+.gf-instr-fuel svg { flex: none; fill: #434343; margin-left: -1px; }
+.gf-instr-wheel:focus-visible [aria-current="step"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 28px rgba(0, 0, 0, 0.14), var(--gf-focus-ring);
+}
+.gf-instr-avatar {
+  width: 82px;
+  height: 82px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+/* The ACPlus drawings, painted in the pill's text colour */
 .gf-instr-icon {
-  background-color: currentColor;
+  width: 50px;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.92);
   -webkit-mask: var(--icon) center / contain no-repeat;
   mask: var(--icon) center / contain no-repeat;
 }
-/* Long read-aloud text needs 4.5:1. Dark's white glass over the white host
-   only reaches ~3:1, so the reading card is a dark glass there instead.
-   Light and Brand tiles already clear it. */
-.gf-root[data-gf-theme="dark"] .gf-surface.gf-tile.gf-reading {
-  --_bg: rgba(20, 20, 20, 0.5);
+.gf-instr-badge {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 27px;
+  height: 27px;
+  border-radius: 999px;
+  background: #fff;
+  color: #333;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 27px;
+  text-align: center;
 }
-.gf-instr-scroll {
-  scroll-behavior: smooth;
-  overscroll-behavior: contain;
-}
-@media (prefers-reduced-motion: reduce) {
-  .gf-instr-scroll { scroll-behavior: auto; }
-}
-.gf-instr-more {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
-}
-.gf-root .gf-instr-scroll:focus-visible {
-  box-shadow: inset var(--gf-focus-ring);
+.gf-instr-text {
+  position: relative; /* above the fuel */
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 25px;
+  text-align: left;
 }
 
 /* Brand-only details tokens can't carry */
@@ -780,77 +801,6 @@ button.gf-item:not(:disabled):hover::before {
 .gf-root[data-gf-theme="brand"] .gf-choice {
   --_blur: 20px;
 }
-
-/* "All set" (Figma 11635:14781), now in every theme */
-.gf-brand-finale {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: 1000.641px;
-  max-width: calc(var(--stage-vw, 1vw) * 100 - 64px);
-  font-size: 60px;
-  font-weight: 500;
-  line-height: 78px;
-  text-align: center;
-  text-wrap: balance;
-  background-image: linear-gradient(171.139deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-/* Get Started: a centred gradient pill under the message, styled per theme */
-.gf-root[data-gf-theme="brand"] {
-  --gf-cta-bg: linear-gradient(133.409deg, #007a8b 0%, #3aaf4d 37.007%, #a8cb38 85.572%);
-  --gf-cta-ring: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
-  --gf-cta-shadow: 0 20px 60px rgba(2, 25, 11, 0.5);
-}
-.gf-root[data-gf-theme="dark"] {
-  --gf-cta-bg: linear-gradient(133.409deg, #0b8fa1 0%, #3aaf4d 45%, #b4d63f 100%);
-  --gf-cta-ring: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
-  --gf-cta-shadow: 0 14px 48px rgba(58, 175, 77, 0.38);
-}
-.gf-root[data-gf-theme="light"] {
-  --gf-cta-bg: linear-gradient(133.409deg, #007a8b 0%, #3aaf4d 45%, #8fbf2c 100%);
-  --gf-cta-ring: inset 0 0 0 1.5px rgba(255, 255, 255, 0.5);
-  --gf-cta-shadow: 0 14px 36px rgba(0, 122, 139, 0.28);
-}
-.gf-brand-cta {
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 140px);
-  translate: -50% 0;
-  height: 84px;
-  padding: 0 52px;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 32px;
-  font-weight: 400;
-  color: #fff;
-  background: var(--gf-cta-bg);
-  box-shadow: var(--gf-cta-ring), var(--gf-cta-shadow);
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, filter 0.2s ease;
-}
-.gf-brand-cta:hover { filter: brightness(1.06); transform: scale(1.03); }
-.gf-brand-cta:active { transform: scale(0.98); }
-.gf-brand-cta:focus-visible { outline: none; box-shadow: var(--gf-cta-ring), var(--gf-cta-shadow), var(--gf-focus-ring); }
-
-/* The globe on Dark and Light's "All set" screen (Brand has its own backdrop) */
-.gf-orb-solo {
-  animation: gf-orb-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.gf-root[data-gf-theme="light"] .gf-orb-solo {
-  /* The render is light on black: flip it so it reads on a light screen, tinted brand green */
-  mix-blend-mode: multiply;
-  filter: invert(1) sepia(1) hue-rotate(75deg) saturate(2.4);
-}
-@keyframes gf-orb-in {
-  from { opacity: 0; transform: scale(0.94); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@media (prefers-reduced-motion: reduce) { .gf-orb-solo { animation: none; } }
 
 /* Dock "Close": solid white circle with a #434343 X, in every theme. */
 .gf-root[data-gf-theme="dark"],

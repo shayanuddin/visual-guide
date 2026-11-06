@@ -160,12 +160,11 @@ const today = () => {
 export const postTherapyFlow: FlowConfig<PostTherapyContext> = {
   id: "post-therapy",
   label: "Post therapy documentation guide",
-  finale: {
-    message: ctx => `All set, ${ctx.patient?.name.split(" ")[0] ?? "the patient"}’s ${ctx.session?.device ?? "device"} session is ready to document.`,
-    action: "Continue",
-  },
   steps: [
-    patientStep<PostTherapyContext>({ heading: "Whose session are we documenting?", subtitle: "Select the patient who used the device" }),
+    patientStep<PostTherapyContext>(
+      { heading: "Whose session are we documenting?", subtitle: "Select the patient who used the device" },
+      ["session", "clinicianRecords", "setting", "treatment", "scales", "billing", "noteInfo"],
+    ),
     {
       id: "scan",
       label: "Scan device",
@@ -214,7 +213,6 @@ export const postTherapyFlow: FlowConfig<PostTherapyContext> = {
       label: "Treatment details",
       prompt: "add skilled time and treatment location",
       provides: ["treatment", "clinicianRecords"],
-      backTo: "setting",
       heading: "Treatment details",
       subtitle: "Set skilled time and location, and add any placement notes",
       render: api => h(ReviewStep<PostTherapyContext>, {
@@ -245,7 +243,6 @@ export const postTherapyFlow: FlowConfig<PostTherapyContext> = {
       label: "Scales",
       prompt: "record the pain and Borg scales",
       provides: ["scales"],
-      backTo: "setting",
       heading: "Record the scales",
       subtitle: "Optional: add the pain and Borg scales for this session",
       render: api => h(ReviewStep<PostTherapyContext>, {
@@ -261,13 +258,12 @@ export const postTherapyFlow: FlowConfig<PostTherapyContext> = {
       label: "Billing and note",
       prompt: "confirm the CPT codes, template and note details",
       provides: ["billing", "noteInfo"],
-      backTo: "setting",
       heading: "Almost done",
       subtitle: "Confirm billing and the note details",
       render: api => h(ReviewStep<PostTherapyContext>, {
         ...api,
         fields: [...billingFields(api.context.session!), ...NOTE_FIELDS],
-        // Codes and template are suggested from the device; back from "All set" keeps the edits
+        // Codes and template are suggested from the device; going back keeps the edits
         initialValues: ctx => {
           const s = ctx.session!;
           const templates = templatesFor(s.device);

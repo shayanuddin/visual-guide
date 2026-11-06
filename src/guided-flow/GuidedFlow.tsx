@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { Flip } from "gsap/Flip";
 import "./guided-flow.css";
-import { M, ms } from "./motion";
+import { M } from "./motion";
 import type { FlowCommand, FlowConfig, GuideScene, StepApi } from "./flows/types";
 import BrandBackdrop from "./BrandBackdrop";
-import { ArrowUpRightIcon, ChevronIcon, CloseIcon, ResetIcon } from "./steps/icons";
-import ThemeSwitcher, { nextTheme, switcherEnabled, useGuideTheme } from "./ThemeSwitcher";
+import { ArrowLeftIcon, CloseIcon } from "./steps/icons";
+import { guideTheme } from "./theme";
 import { MicButton } from "./voice/VoiceControls";
 import { useVoice } from "./voice/useVoice";
 
@@ -76,34 +76,24 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
   const [index, setIndex] = useState(firstIndex);
   // Steps completed on the way here, most recent last (what Back returns to)
   const [history, setHistory] = useState<number[]>([]);
-  const [resetKey, setResetKey] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
-  // Exit and Start over both ask first, in the guide's own space
+  // Exit asks first, in the guide's own space
   const [showExit, setShowExit] = useState(false);
-  const [confirmKind, setConfirmKind] = useState<"exit" | "reset">("exit");
   const [liveMsg, setLiveMsg] = useState("");
   const [voiceMsg, setVoiceMsg] = useState("");
   // Brand backdrop/heading arrangement; a step may override its default
   const [sceneOverride, setSceneOverride] = useState<GuideScene | null>(null);
-  // Brand's "All set" screen, holding the completed context until handoff
-  const [finale, setFinale] = useState<Partial<C> | null>(null);
 
   const ctxRef = useRef(context);
   const indexRef = useRef(index);
   const historyRef = useRef(history);
-  const backTargetRef = useRef(-1);
   historyRef.current = history;
   const busyRef = useRef(false);
   const escapeRef = useRef<(() => void) | null>(null);
   const commandRef = useRef<((c: FlowCommand) => boolean) | null>(null);
   indexRef.current = index;
-  const [theme, setTheme] = useGuideTheme();
-  const themeRef = useRef(theme);
-  themeRef.current = theme;
-  // Every theme ends on "All set" instead of handing off from the last step
-  const hasFinale = !!flow.finale;
-  const showSwitcher = useMemo(switcherEnabled, []);
+  const theme = guideTheme();
 
   const rootRef = useRef<HTMLDivElement>(null);
   const scrimRef = useRef<HTMLDivElement>(null);
@@ -176,7 +166,7 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
       onComplete: () => { busyRef.current = false; },
     });
     focusFirst();
-  }, [index, resetKey, finale !== null, rm, focusFirst]);
+  }, [index, rm, focusFirst]);
 
   const stepOut = useCallback((then: () => void) => {
     const stage = stageRef.current;
@@ -225,10 +215,6 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
     setContext(next);
     const ni = nextIndex(from);
     if (ni === -1) {
-      if (flow.finale) {
-        stepOut(() => { clearStepChrome(); setFinale(next); });
-        return;
-      }
       finish(next);
       return;
     }
@@ -237,17 +223,18 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
       setHistory(h => [...h, from]);
       setIndex(ni);
     });
-  }, [nextIndex, finish, stepOut, flow.finale, steps]);
+  }, [nextIndex, finish, stepOut, steps]);
 
-  // Back goes to the step this one names (`backTo`), which opens with its
-  // answer from the context; the steps in between are left behind.
+  // Back returns to the previous screen, which opens with its answer from the
+  // context (a changed answer there clears what depended on it).
   const back = useCallback(() => {
-    const target = backTargetRef.current;
-    if (busyRef.current || target < 0) return;
+    const h = historyRef.current;
+    if (busyRef.current || !h.length) return;
+    const target = h[h.length - 1];
     busyRef.current = true;
     stepOut(() => {
       clearStepChrome();
-      setHistory(h => { const k = h.indexOf(target); return k >= 0 ? h.slice(0, k) : h; });
+      setHistory(h.slice(0, -1));
       setIndex(target);
     });
   }, [stepOut]);
@@ -266,17 +253,16 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
     setEscapeHandler,
     setCommandHandler,
     reducedMotion: rm,
-    isLastStep: index === steps.length - 1 && !hasFinale,
+    isLastStep: index === steps.length - 1,
     setScene,
-  }), [context, complete, announce, setEscapeHandler, setCommandHandler, rm, index, steps.length, setScene, hasFinale]);
+  }), [context, complete, announce, setEscapeHandler, setCommandHandler, rm, index, steps.length, setScene]);
 
   useImperativeHandle(ref, () => ({
     sendCommand: command => commandRef.current?.(command) ?? false,
   }), []);
 
   const step = steps[index];
-  backTargetRef.current = step.backTo ? steps.findIndex(s => s.id === step.backTo) : -1;
-  const scene = finale ? "intro" : sceneOverride ?? step.scene ?? "focus";
+  const scene = sceneOverride ?? step.scene ?? "focus";
   const brand = theme === "brand";
   const text = (v: typeof step.heading) => (typeof v === "function" ? v(context) : v);
   const heading = text(step.heading);
@@ -304,65 +290,27 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
     wasPaused.current = paused;
   }, [paused, cancelVoice, focusFirst]);
 
-  // ── Theme: crossfade colours and retarget the host blur ─────────────────────
-  const themeMounted = useRef(false);
-  useLayoutEffect(() => {
-    if (!themeMounted.current) { themeMounted.current = true; return; }
-    const root = rootRef.current;
-    if (!root) return;
-    root.classList.add("gf-theme-switching");
-    gsap.to(blur.current, { px: hostBlur(), duration: M.themeFade, ease: "power1.inOut", onUpdate: applyBlur, overwrite: true });
-    const t = window.setTimeout(() => root.classList.remove("gf-theme-switching"), ms(M.themeFade) + 50);
-    return () => window.clearTimeout(t);
-  }, [theme, hostBlur, applyBlur]);
-
   // ── Dock actions ────────────────────────────────────────────────────────────
   const hasProgress =
     index !== firstIndex || dirty || Object.keys(context).length > Object.keys(initialRef.current).length;
 
-  function reset() {
-    cancelVoice();
-    if (busyRef.current) return;
-    busyRef.current = true;
-    stepOut(() => {
-      ctxRef.current = initialRef.current;
-      setContext(initialRef.current);
-      clearStepChrome();
-      setLiveMsg("");
-      setFinale(null);
-      setHistory([]);
-      setIndex(firstIndex);
-      setResetKey(k => k + 1);
-    });
-  }
-
-  function requestReset() {
-    cancelVoice();
-    if (!canReset) return;
-    setConfirmKind("reset");
-    setShowExit(true);
-  }
-
   function requestClose() {
     cancelVoice();
-    if (hasProgress) { setConfirmKind("exit"); setShowExit(true); return; }
+    if (hasProgress) { setShowExit(true); return; }
     fadeOut(onClose);
   }
 
   function confirmed() {
     setShowExit(false);
-    if (confirmKind === "reset") reset();
-    else fadeOut(onClose);
+    fadeOut(onClose);
   }
 
   function requestBack() {
     cancelVoice();
     back();
   }
-  // Only steps that name a `backTo` have Back, and "All set" has none
-  const canGoBack = backTargetRef.current >= 0 && !finale;
-  // On the first step there's nothing to start over from (Close still asks)
-  const canReset = hasProgress && (index !== firstIndex || finale !== null);
+  // Every screen after the first has Back
+  const canGoBack = history.length > 0;
 
   // ── Exit confirmation: the step and controls give way to the question ──────
   const exitShown = useRef(false);
@@ -391,11 +339,6 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (paused) return;
-      const typing = e.target instanceof HTMLElement && e.target.matches("input,textarea,[contenteditable]");
-      if ((e.key === "t" || e.key === "T") && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        setTheme(nextTheme(theme));
-        return;
-      }
       if (e.key === "Escape") {
         e.preventDefault();
         if (showExit) { setShowExit(false); return; }
@@ -427,7 +370,7 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
 
       {/* Scrim — blurs the host screen; taps do nothing */}
       <div ref={scrimRef} className="gf-scrim absolute inset-0" style={{ opacity: 0 }} aria-hidden="true" />
-      {brand ? <BrandBackdrop ref={brandRef} reducedMotion={rm} /> : finale && <BrandBackdrop orbOnly reducedMotion={rm} />}
+      {brand && <BrandBackdrop ref={brandRef} reducedMotion={rm} />}
       <div className="absolute inset-0 pointer-events-none transition-opacity duration-200"
         style={{ background: "var(--gf-picker-scrim)", backdropFilter: "blur(var(--gf-picker-blur))", WebkitBackdropFilter: "blur(var(--gf-picker-blur))", opacity: focusMode || showExit ? 1 : 0 }} aria-hidden="true" />
 
@@ -439,7 +382,7 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
       {/* Stage — the current step renders and swaps in place */}
       <div ref={stageRef} tabIndex={-1} className="absolute inset-0 outline-none" style={{ opacity: 0 }}>
         {/* Brand: heading, subtitle and separator above the step */}
-        {brand && heading && !finale && (
+        {brand && heading && (
           <div ref={headingRef} className="gf-brand-heading" aria-hidden={showExit || undefined}
             style={{ opacity: focusMode ? 0.25 : undefined }}>
             <h2 className="gf-brand-title">{heading}</h2>
@@ -447,36 +390,24 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
             <span className="gf-brand-separator" aria-hidden="true" />
           </div>
         )}
-        {finale && flow.finale ? (
-          // Brand "All set" (Figma 11635:14781)
-          <div ref={stepWrapRef} className="absolute inset-0" aria-hidden={showExit || undefined}>
-            <p className="gf-brand-finale" role="status">{flow.finale.message(finale)}</p>
-            {/* The action comes first so it takes focus */}
-            <button type="button" onClick={() => finish(finale)} className="gf-brand-cta">
-              {flow.finale.action}
-              <ArrowUpRightIcon size={40} strokeWidth={1.6} />
-            </button>
-          </div>
-        ) : (
-          <div key={`${step.id}:${resetKey}`} ref={stepWrapRef} className="gf-step-wrap absolute inset-0" aria-hidden={showExit || undefined}>
+          <div key={step.id} ref={stepWrapRef} className="gf-step-wrap absolute inset-0" aria-hidden={showExit || undefined}>
             {step.render(api)}
           </div>
-        )}
       </div>
 
-      {/* Back: the left edge, mirroring the proceed arrow on the right */}
-      <div ref={backRef} className="absolute" style={{ left: 110, top: "50%", marginTop: -30, opacity: 0 }}>
-        <button onClick={requestBack} aria-label="Back to the previous step" tabIndex={canGoBack ? undefined : -1}
+      {/* Back: bottom-left, level with the dock (Figma 11784:15940) */}
+      <div ref={backRef} className="absolute" style={{ left: 50, bottom: 52, opacity: 0 }}>
+        <button onClick={requestBack} aria-label="Back to the previous screen" tabIndex={canGoBack ? undefined : -1}
           aria-hidden={!canGoBack || undefined}
           className="gf-surface gf-dock rounded-full flex items-center justify-center"
           style={{
             width: 60, height: 60,
             opacity: !canGoBack ? 0 : focusMode ? 0.4 : 1,
             pointerEvents: canGoBack ? undefined : "none",
-            transform: canGoBack || rm ? "none" : "translateX(12px)",
+            transform: canGoBack || rm ? "none" : "translateX(-12px)",
             transition: "opacity 0.24s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1)",
           }}>
-          <ChevronIcon dir="left" size={26} strokeWidth={2} />
+          <ArrowLeftIcon size={28} strokeWidth={1.6} />
         </button>
       </div>
 
@@ -485,13 +416,6 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
         className="absolute left-1/2 -translate-x-1/2 flex items-center transition-opacity duration-200"
         style={{ bottom: 52, opacity: 0 }}>
         <div style={{ opacity: focusMode ? 0.4 : 1 }} className="flex items-center transition-opacity duration-200">
-          {/* Reset grows in from zero width so the centred group glides instead of jumping */}
-          <DockSlot shown={canReset} rm={rm}>
-            <button onClick={requestReset} aria-label="Start the guide over" tabIndex={canReset ? undefined : -1}
-              className="gf-surface gf-dock rounded-full flex items-center justify-center shrink-0" style={{ width: 60, height: 60, marginRight: 17 }}>
-              <ResetIcon size={26} strokeWidth={1.85} />
-            </button>
-          </DockSlot>
           <button onClick={requestClose} aria-label="Close guide"
             className="gf-surface gf-dock gf-close rounded-full flex items-center justify-center" style={{ width: 60, height: 60, marginRight: voice && !voice.anchor ? 17 : 0 }}>
             <CloseIcon size={34} strokeWidth={1.5} />
@@ -518,25 +442,21 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
       <div className="absolute inset-0 pointer-events-none transition-opacity duration-200"
         style={{ background: "var(--gf-dim-paused)", opacity: paused ? 1 : 0 }} aria-hidden="true" />
 
-      {showSwitcher && <ThemeSwitcher theme={theme} onChange={setTheme} />}
-
       {/* Exit confirmation, in the guide's own space (replaces the step) */}
       <div ref={exitRef} role="alertdialog" aria-modal="true"
         aria-labelledby="gf-exit-title" aria-describedby="gf-exit-body"
         className="absolute inset-0 flex flex-col items-center justify-center text-center"
         style={{ visibility: "hidden", opacity: 0, padding: "0 32px" }}>
         <h2 id="gf-exit-title" className="text-[34px] font-bold" style={{ lineHeight: 1.2 }}>
-          {confirmKind === "reset" ? "Start over?" : "Exit the guide?"}
+          Exit the guide?
         </h2>
         <p id="gf-exit-body" className="gf-muted text-[20px] leading-snug" style={{ marginTop: 12, maxWidth: 520 }}>
-          {confirmKind === "reset"
-            ? "Everything you’ve entered in this guide will be cleared and you’ll begin again from the first step."
-            : "You haven’t finished this session yet. If you exit now, your progress will be lost."}
+          You haven’t finished this session yet. If you exit now, your progress will be lost.
         </p>
         <div className="flex items-center" style={{ gap: 16, marginTop: 36 }}>
           <button onClick={confirmed}
             className="gf-surface gf-secondary gf-pill text-[18px] font-semibold" style={{ height: 60, padding: "0 32px", minWidth: 180 }}>
-            {confirmKind === "reset" ? "Start over" : "Exit guide"}
+            Exit guide
           </button>
           <button ref={continueRef} onClick={() => setShowExit(false)}
             className="gf-surface gf-dock gf-pill gf-selected text-[18px] font-semibold" style={{ height: 60, padding: "0 32px", minWidth: 180, transform: "none" }}>
@@ -544,20 +464,6 @@ export default function GuidedFlow<C extends object>({ flow, initialContext, onC
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** A dock button that grows in from zero width when it becomes available. */
-function DockSlot({ shown, rm, children }: { shown: boolean; rm: boolean; children: ReactNode }) {
-  return (
-    <div aria-hidden={!shown || undefined} className="flex items-center"
-      style={{
-        width: shown ? 60 + 17 : 0, opacity: shown ? 1 : 0,
-        overflow: shown ? "visible" : "hidden",
-        transition: rm ? "opacity 0.2s" : "width 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease",
-      }}>
-      {children}
     </div>
   );
 }

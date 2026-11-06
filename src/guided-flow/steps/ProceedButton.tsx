@@ -83,7 +83,7 @@ export default function ProceedButton({ ready, dimmed = false, label, isLastStep
           onClick={onClick}
           disabled={!live}
           aria-label={label}
-          className={`relative rounded-full flex items-center justify-center ${live ? "gf-proceed" : "gf-surface gf-dock"}`}
+          className={`relative rounded-full flex items-center justify-center ${live ? "gf-proceed" : "gf-proceed-disabled"}`}
           style={{ width: PROCEED, height: PROCEED }}
         >
           {isLastStep

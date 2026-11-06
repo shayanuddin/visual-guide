@@ -4,7 +4,7 @@ import { M, ms } from "../motion";
 import type { StepApi } from "../flows/types";
 import { SearchIcon } from "./icons";
 
-export type StatusTone = "positive" | "warning" | "neutral";
+export type StatusTone = "info" | "positive" | "warning" | "neutral";
 
 export interface SearchStepProps<T, C extends object> extends StepApi<C> {
   items: T[];

@@ -34,22 +34,22 @@ function mockScan(onFound: (d: Device) => void, onDone: () => void) {
 
 const REVIEW_FIELDS: ReviewField[] = [
   {
-    id: "gender", label: "Gender", required: true,
+    id: "gender", label: "Gender", required: true, placeholder: "N/A",
     display: v => v.gender,
     picker: { kind: "options", key: "gender", options: ["Male", "Female", "Other"], layout: "tiles" },
   },
   {
-    id: "dob", label: "Date of Birth", required: true,
+    id: "dob", label: "Date of Birth", required: true, placeholder: "--/--/----",
     display: v => v.dob,
     picker: { kind: "date", key: "dob" },
   },
   {
-    id: "weight", label: "Weight", required: true,
+    id: "weight", label: "Weight", required: true, placeholder: "N/A",
     display: v => (v.weight ? `${v.weight} lbs` : ""),
     picker: { kind: "number", key: "weight", min: 50, max: 600, unit: "lbs", label: "Weight" },
   },
   {
-    id: "height", label: "Height", required: true,
+    id: "height", label: "Height", required: true, placeholder: "N/A",
     display: v => {
       if (!v.heightFt) return "";
       const cm = heightToCm(v.heightFt, v.heightIn);
@@ -58,7 +58,7 @@ const REVIEW_FIELDS: ReviewField[] = [
     picker: { kind: "height", ftKey: "heightFt", inKey: "heightIn" },
   },
   {
-    id: "ethnicity", label: "Ethnicity", required: true,
+    id: "ethnicity", label: "Ethnicity", required: true, placeholder: "N/A",
     display: v => v.ethnicity,
     picker: { kind: "options", key: "ethnicity", options: ETHNICITIES, layout: "list" },
   },
@@ -82,7 +82,7 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
   id: "spirometry",
   label: "Spirometry assessment guide",
   steps: [
-    patientStep<SpirometryContext>({ heading: "Who are we assessing today?", subtitle: "Select a patient to assess" }),
+    patientStep<SpirometryContext>({ heading: "Who are we assessing today?", subtitle: "Select a patient to assess" }, ["answers", "briefed"]),
     {
       id: "device",
       label: "Connect device",
@@ -139,13 +139,14 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
       label: "Test instructions",
       prompt: "read the test instructions to the patient",
       provides: ["briefed"],
-      backTo: "demographics",
       heading: "Test instructions",
       subtitle: ctx => `${ctx.test?.label ?? "Spirometry"} · guide ${firstName(ctx.patient)} through these steps`,
       render: api => h(InstructionsStep<SpirometryContext>, {
         ...api,
         title: `Instructions for ${api.context.test?.label ?? "the test"}`,
         instructions: TEST_INSTRUCTIONS[api.context.test?.id ?? ""] ?? TEST_INSTRUCTIONS.expiratory,
+        caption: "Start the test when ready!",
+        captionDetail: "A 10-second countdown begins Trial 1.",
         toContext: () => ({ briefed: true }),
         proceedLabel: "Start test",
       }),

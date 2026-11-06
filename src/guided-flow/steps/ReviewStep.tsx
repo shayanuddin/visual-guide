@@ -20,6 +20,8 @@ export interface ReviewField {
   required?: boolean;
   /** Tile value; "" means missing. */
   display: (values: Values) => string;
+  /** An empty tile shows this as its value (e.g. "N/A") instead of asking to Select. */
+  placeholder?: string;
   /** Omitted: the value came from elsewhere (e.g. the device) and can't be edited here. */
   picker?: PickerSpec;
 }
@@ -197,8 +199,8 @@ export default function ReviewStep<C extends object>(p: ReviewStepProps<C>) {
                   className="gf-surface gf-tile gf-card relative flex flex-col justify-center items-start text-left"
                   style={{ width: g.w, height: g.h, padding: g.pad, gap: p.density === "compact" ? 8 : 15 }}
                 >
-                  {v ? (
-                    <span className="font-bold leading-tight line-clamp-2 break-words" style={{ fontSize: g.value }}>{v}</span>
+                  {v || f.placeholder ? (
+                    <span className="font-bold leading-tight line-clamp-2 break-words" style={{ fontSize: g.value }}>{v || f.placeholder}</span>
                   ) : (
                     <span className="font-bold leading-tight gf-muted" style={{ fontSize: g.value }}>{emptyLabel(f.picker)}</span>
                   )}

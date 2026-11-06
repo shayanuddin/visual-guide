@@ -15,11 +15,7 @@ export const CloseIcon = ({ size = 24, strokeWidth = 1.8 }: IconProps) => (
   <svg {...base(size, strokeWidth)}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 );
 
-export const ResetIcon = ({ size = 24, strokeWidth = 1.8 }: IconProps) => (
-  <svg {...base(size, strokeWidth)}><path d="M20 12a8 8 0 1 1-2.34-5.66" /><polyline points="20 4 20 9 15 9" /></svg>
-);
-
-/** Two chasing arrows: the standard "refresh" (distinct from Reset's single arrow). */
+/** Two chasing arrows: the standard "refresh". */
 export const RefreshIcon = ({ size = 20, strokeWidth = 1.8 }: IconProps) => (
   <svg {...base(size, strokeWidth)}>
     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
@@ -35,6 +31,10 @@ export const ArrowUpRightIcon = ({ size = 22, strokeWidth = 1.8 }: IconProps) =>
 
 export const ArrowRightIcon = ({ size = 22, strokeWidth = 1.8 }: IconProps) => (
   <svg {...base(size, strokeWidth)}><line x1="4" y1="12" x2="20" y2="12" /><polyline points="13 5 20 12 13 19" /></svg>
+);
+
+export const ArrowLeftIcon = ({ size = 22, strokeWidth = 1.8 }: IconProps) => (
+  <svg {...base(size, strokeWidth)}><line x1="20" y1="12" x2="4" y2="12" /><polyline points="11 5 4 12 11 19" /></svg>
 );
 
 /** Rounded QR glyph for the scan step and the Quick Connect suggestion. */

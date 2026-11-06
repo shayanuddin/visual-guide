@@ -54,12 +54,6 @@ export interface FlowStep<C extends object> {
   subtitle?: string | ((context: Partial<C>) => string);
   /** Starting scene for Brand mode; defaults to "focus". */
   scene?: GuideScene;
-  /**
-   * Shows the Back button on this step. Back goes straight to the step with
-   * this id (e.g. the choice that opened the form), not one step at a time.
-   * Steps without it have no Back button.
-   */
-  backTo?: string;
   render: (api: StepApi<C>) => ReactNode;
 }
 
@@ -68,12 +62,4 @@ export interface FlowConfig<C extends object> {
   /** Accessible name of the overlay dialog. */
   label: string;
   steps: FlowStep<C>[];
-  /**
-   * An "All set" screen after the last step. Its action hands off
-   * (onStart).
-   */
-  finale?: {
-    message: (context: Partial<C>) => string;
-    action: string;
-  };
 }

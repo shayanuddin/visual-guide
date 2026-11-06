@@ -7,8 +7,7 @@ import { useEffect, useRef, type Ref } from "react";
 
 const ORB_SRC = `${import.meta.env.BASE_URL}assets/brand/orb.mp4`;
 
-// orbOnly: Dark and Light show just the globe on their "All set" screen.
-export default function BrandBackdrop({ reducedMotion, ref, orbOnly }: { reducedMotion: boolean; ref?: Ref<HTMLDivElement>; orbOnly?: boolean }) {
+export default function BrandBackdrop({ reducedMotion, ref }: { reducedMotion: boolean; ref?: Ref<HTMLDivElement> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Reduced motion: hold the first frame instead of looping
@@ -21,11 +20,11 @@ export default function BrandBackdrop({ reducedMotion, ref, orbOnly }: { reduced
 
   return (
     <div ref={ref} aria-hidden="true" className="absolute inset-0 pointer-events-none">
-      <div className={orbOnly ? "gf-brand-orb gf-orb-solo" : "gf-brand-orb"}>
+      <div className="gf-brand-orb">
         <video ref={videoRef} src={ORB_SRC} muted loop playsInline autoPlay={!reducedMotion} preload="auto" />
       </div>
-      {!orbOnly && <div className="gf-brand-dim" />}
-      {!orbOnly && <div className="gf-brand-color" />}
+      <div className="gf-brand-dim" />
+      <div className="gf-brand-color" />
     </div>
   );
 }

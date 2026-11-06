@@ -73,8 +73,6 @@ export const M = {
   voiceScriptDelay: 0.7, // silence before the scripted transcript/pattern starts
   voiceTypeChar: 0.03, // scripted transcript pace (also sets the scripted pattern length)
 
-  // Theme crossfade
-  themeFade: 0.2,
 
 } as const;
 
