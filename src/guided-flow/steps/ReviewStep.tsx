@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import { Flip } from "gsap/Flip";
 import { M } from "../motion";
 import type { StepApi } from "../flows/types";
-import { ArrowRightIcon, ArrowUpRightIcon } from "./icons";
+import ProceedButton from "./ProceedButton";
 import type { PickerSpec, Values } from "./pickers/shared";
 import OptionPicker from "./pickers/OptionPicker";
 import DatePicker from "./pickers/DatePicker";
@@ -43,16 +43,6 @@ const GRID = {
   compact: { cols: 4, w: 200, h: 112, gap: 16, pad: "10px 22px", value: 21, label: 15 },
   wide: { cols: 2, w: 340, h: 146, gap: 20, pad: "12px 28px", value: 24, label: 18 },
 } as const;
-// Proceed button and its rings at their largest (Figma state B)
-// Figma start-button states (A / Variant3 / B). The light frames place it at
-// 92.73px (11784:15975), i.e. the 120px component at 0.7727.
-const SCALE = 92.727 / 120;
-const PROCEED = 120 * SCALE; // A: button at rest
-const PROCEED_MID = 130 * SCALE; // Variant3
-const PROCEED_PEAK = 140 * SCALE; // B
-const RING_INNER = 170 * SCALE; // B
-const RING_OUTER_MID = 150 * SCALE; // Variant3
-const RING_OUTER = 200 * SCALE; // B
 
 function Picker({ field, values, onConfirm, flipId }: { field: ReviewField; values: Values; onConfirm: (p: Values) => void; flipId: string }) {
   const spec = field.picker;
@@ -79,9 +69,6 @@ export default function ReviewStep<C extends object>(p: ReviewStepProps<C>) {
   const [values, setValues] = useState<Values>(() => p.initialValues(p.context));
   const [editing, setEditing] = useState<number | null>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
-  const pulseRef = useRef<HTMLSpanElement>(null);
-  const innerRingRef = useRef<HTMLSpanElement>(null);
-  const outerRingRef = useRef<HTMLSpanElement>(null);
   const flipState = useRef<Flip.FlipState | null>(null);
   const returnFocus = useRef<number | null>(null);
   const morphing = useRef(false);
@@ -100,38 +87,6 @@ export default function ReviewStep<C extends object>(p: ReviewStepProps<C>) {
       { opacity: 1, y: 0, duration: M.itemIn, stagger: M.stagger, ease: M.stepInEase, clearProps: "transform" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Proceed pulse: three circles breathing through the Figma states
-  //   A        button 120, rings tucked behind it
-  //   Variant3 button 130, outer ring 150
-  //   B        button 140, inner ring 170, outer ring 200   (all × SCALE)
-  useLayoutEffect(() => {
-    const btn = pulseRef.current, inner = innerRingRef.current, outer = outerRingRef.current;
-    if (!btn || !inner || !outer || !ready) return;
-    const A = { btn: 1, inner: PROCEED / RING_INNER, outer: PROCEED / RING_OUTER };
-    if (rm) {
-      // Static Variant3
-      gsap.set(btn, { scale: PROCEED_MID / PROCEED });
-      gsap.set(inner, { scale: A.inner });
-      gsap.set(outer, { scale: RING_OUTER_MID / RING_OUTER });
-      return;
-    }
-    gsap.set(btn, { scale: A.btn });
-    gsap.set(inner, { scale: A.inner });
-    gsap.set(outer, { scale: A.outer });
-    // Built linear, then eased as a whole so it flows through Variant3 without a stop.
-    const states = gsap.timeline({ paused: true, defaults: { ease: "none", duration: 1 } })
-      .to(btn, { scale: PROCEED_MID / PROCEED }, 0)
-      .to(outer, { scale: RING_OUTER_MID / RING_OUTER }, 0)
-      .to(btn, { scale: PROCEED_PEAK / PROCEED }, 1)
-      .to(outer, { scale: 1 }, 1)
-      .to(inner, { scale: 1, duration: 0.9 }, 1.1);
-    const driver = gsap.to(states, {
-      progress: 1, duration: M.proceedPulse, ease: "sine.inOut",
-      repeat: -1, yoyo: true, repeatDelay: M.proceedPulseHold,
-    });
-    return () => { driver.kill(); states.kill(); };
-  }, [ready, rm, editing]); // rings unmount while a picker is open
 
   function capture() {
     const el = surfaceRef.current;
@@ -271,33 +226,14 @@ export default function ReviewStep<C extends object>(p: ReviewStepProps<C>) {
         )}
       </div>
 
-      {/* Proceed */}
-      <div className="absolute flex items-center justify-center"
-        style={{ right: 55 + (170 - PROCEED) / 2, top: "50%", width: PROCEED, height: PROCEED, marginTop: -PROCEED / 2,
-          opacity: editing !== null ? 0.4 : 1, transition: "opacity 0.2s ease" }}>
-        {ready && editing === null && (
-          <>
-            <span ref={outerRingRef} aria-hidden="true" className="gf-proceed-ring gf-proceed-ring-outer"
-              style={{ width: RING_OUTER, height: RING_OUTER }} />
-            <span ref={innerRingRef} aria-hidden="true" className="gf-proceed-ring gf-proceed-ring-inner"
-              style={{ width: RING_INNER, height: RING_INNER }} />
-          </>
-        )}
-        <span ref={pulseRef} className="relative flex">
-          <button
-            onClick={proceed}
-            disabled={!ready || editing !== null}
-            aria-label={ready ? p.proceedLabel : `${p.proceedLabel} — add ${missing.map(f => f.label).join(", ")} first`}
-            className={`relative rounded-full flex items-center justify-center ${ready && editing === null ? "gf-proceed" : "gf-surface gf-dock"}`}
-            style={{ width: PROCEED, height: PROCEED }}
-          >
-            {/* ↗ only where the action starts the session; → just moves to the next step */}
-            {p.isLastStep
-              ? <ArrowUpRightIcon size={80 * SCALE} strokeWidth={0.9} />
-              : <ArrowRightIcon size={80 * SCALE} strokeWidth={0.9} />}
-          </button>
-        </span>
-      </div>
+      <ProceedButton
+        ready={ready}
+        dimmed={editing !== null}
+        label={ready ? p.proceedLabel : `${p.proceedLabel} — add ${missing.map(f => f.label).join(", ")} first`}
+        isLastStep={p.isLastStep}
+        reducedMotion={rm}
+        onClick={proceed}
+      />
     </div>
   );
 }

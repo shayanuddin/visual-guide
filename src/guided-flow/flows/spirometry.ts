@@ -1,7 +1,7 @@
 import { createElement as h } from "react";
 import type { FlowConfig } from "./types";
 import {
-  DEVICES, ETHNICITIES, TEST_TYPES,
+  DEVICES, ETHNICITIES, TEST_INSTRUCTIONS, TEST_TYPES,
   heightToCm, splitHeight,
   type Answers, type Device, type Patient, type TestType,
 } from "../data";
@@ -9,6 +9,7 @@ import { patientStep } from "./shared";
 import DiscoverStep from "../steps/DiscoverStep";
 import ChoiceStep from "../steps/ChoiceStep";
 import ReviewStep, { type ReviewField } from "../steps/ReviewStep";
+import InstructionsStep from "../steps/InstructionsStep";
 import { SpirometerIcon } from "../steps/icons";
 import type { Values } from "../steps/pickers/shared";
 
@@ -17,6 +18,8 @@ export interface SpirometryContext {
   device?: Device;
   test?: TestType;
   answers?: Answers;
+  /** The clinician went through the test instructions with the patient. */
+  briefed?: boolean;
 }
 
 /** Mock Bluetooth scan. Add `?gfNoDevices` to the URL to see the empty state. */
@@ -120,7 +123,7 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
       render: api => h(ReviewStep<SpirometryContext>, {
         ...api,
         fields: REVIEW_FIELDS,
-        // Back from "All set" keeps the clinician's edits
+        // Back from the instructions keeps the clinician's edits
         initialValues: ctx => (ctx.answers ? { ...ctx.answers } : answersFrom(ctx.patient)),
         toContext: v => ({
           answers: {
@@ -128,6 +131,22 @@ export const spirometryFlow: FlowConfig<SpirometryContext> = {
             heightFt: v.heightFt, heightIn: v.heightIn, ethnicity: v.ethnicity,
           },
         }),
+        proceedLabel: "Continue to test instructions",
+      }),
+    },
+    {
+      id: "instructions",
+      label: "Test instructions",
+      prompt: "read the test instructions to the patient",
+      provides: ["briefed"],
+      backTo: "demographics",
+      heading: "Test instructions",
+      subtitle: ctx => `${ctx.test?.label ?? "Spirometry"} · guide ${firstName(ctx.patient)} through these steps`,
+      render: api => h(InstructionsStep<SpirometryContext>, {
+        ...api,
+        title: `Instructions for ${api.context.test?.label ?? "the test"}`,
+        instructions: TEST_INSTRUCTIONS[api.context.test?.id ?? ""] ?? TEST_INSTRUCTIONS.expiratory,
+        toContext: () => ({ briefed: true }),
         proceedLabel: "Start test",
       }),
     },

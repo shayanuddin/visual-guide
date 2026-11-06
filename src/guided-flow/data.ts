@@ -370,6 +370,51 @@ export const TEST_TYPES: TestType[] = [
   },
 ];
 
+/** The picture drawn beside an instruction line. */
+export type InstructionIcon = "mouthpiece" | "inhale" | "exhale" | "rest" | "repeat";
+
+/** What the clinician reads to the patient before the first trial. */
+export interface TestInstructions {
+  intro: string;
+  lines: { icon: InstructionIcon; text: string }[];
+  outro: string;
+}
+
+const INSTRUCTIONS_INTRO =
+  "The objective data can only be valid when the clinician adheres to the correct procedure below. Patient should be sitting with upright posture. Apply nose clip (optional) and guide the patient as follows:";
+const INSTRUCTIONS_OUTRO =
+  "When the patient is ready, start the test to begin Trial 1. A 10-second countdown timer will appear.";
+
+const CLOSE_LIPS = { icon: "mouthpiece", text: "Have the patient close their lips around the mouthpiece." } as const;
+const INHALE = { icon: "inhale", text: "The patient should inhale quickly and deeply." } as const;
+const EXHALE = {
+  icon: "exhale",
+  text: "Then without hesitation, have the patient exhale quickly and fully until the 6-second exhalation timer expires. Instruct patient to “blast your air out”.",
+} as const;
+const BETWEEN_TRIALS = [
+  { icon: "rest", text: "Remove mouthpiece and instruct patient to breathe comfortably until the next trial." },
+  { icon: "mouthpiece", text: "When ready, cue patient to prepare for the next trial." },
+  { icon: "repeat", text: "Repeat the procedure until at least 3 acceptable trials are achieved (older adults may complete up to 8 trials)." },
+] as const;
+
+/** Pre-test instructions, by test id. */
+export const TEST_INSTRUCTIONS: Record<string, TestInstructions> = {
+  expiratory: {
+    intro: INSTRUCTIONS_INTRO,
+    lines: [CLOSE_LIPS, INHALE, EXHALE, ...BETWEEN_TRIALS],
+    outro: INSTRUCTIONS_OUTRO,
+  },
+  exp_insp: {
+    intro: INSTRUCTIONS_INTRO,
+    lines: [
+      CLOSE_LIPS, INHALE, EXHALE,
+      { icon: "inhale", text: "The patient should inhale again rapidly and deeply until the 6-second inhalation timer expires." },
+      ...BETWEEN_TRIALS,
+    ],
+    outro: INSTRUCTIONS_OUTRO,
+  },
+};
+
 export const ETHNICITIES = [
   "American Indian or Alaska Native",
   "Asian",

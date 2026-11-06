@@ -714,6 +714,39 @@ button.gf-item:not(:disabled):hover::before {
   display: block;
 }
 
+/* …and the reverse: things Brand's step heading already says */
+.gf-root[data-gf-theme="brand"] .gf-not-brand {
+  display: none;
+}
+
+/* ── Instructions step ─────────────────────────────────────────────────────
+   The card fills the space between the heading (Brand) and the dock, and
+   scrolls when the lines don't fit. */
+.gf-instructions {
+  padding-top: 110px;
+  padding-bottom: 140px; /* clears the dock */
+}
+.gf-root[data-gf-theme="brand"] .gf-instructions {
+  padding-top: 200px; /* below Brand's heading, as on the choice step */
+}
+/* The ACPlus drawings, painted in the text colour so they suit every theme */
+.gf-instr-icon {
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+.gf-instr-scroll {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+.gf-instr-more {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+}
+.gf-root .gf-instr-scroll:focus-visible {
+  box-shadow: inset var(--gf-focus-ring);
+}
+
 /* Brand-only details tokens can't carry */
 .gf-root[data-gf-theme="brand"] .gf-surface.gf-search {
   --gf-fg: #434343;

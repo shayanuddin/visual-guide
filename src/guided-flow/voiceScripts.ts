@@ -111,6 +111,25 @@ const SPIROMETRY: Record<string, VoiceScript> = {
       chips: [{ label: "Edit height", action: { type: "command", command: { type: "edit", value: "height" } } }, BACK],
     },
   },
+
+  instructions: {
+    transcript: "How many trials does the patient need to do?",
+    matches: /\b(trials?|how many|repeat|acceptable|nose ?clip|posture|countdown|instructions?)\b/i,
+    reply: {
+      blocks: [
+        { kind: "p", text: "Aim for **at least 3 acceptable trials**. Older adults may need more attempts, up to **8 trials** in total." },
+        {
+          kind: "ul",
+          items: [
+            "Seat the patient upright. The nose clip is optional.",
+            "Between trials, remove the mouthpiece and let the patient breathe comfortably.",
+            "When you start the test, a 10-second countdown appears before Trial 1.",
+          ],
+        },
+      ],
+      chips: [{ label: "Start the test", action: { type: "command", command: { type: "start" } } }, BACK],
+    },
+  },
 };
 
 const POST_THERAPY: Record<string, VoiceScript> = {
